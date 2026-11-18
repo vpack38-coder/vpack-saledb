@@ -232,7 +232,7 @@
 
     <div class="tabs">
       <button id="tab-sum" class="on" onclick="setTab('sum')">📋 สรุปยอดขาย</button>
-      <button id="tab-cmp" onclick="setTab('cmp')">📅 เปรียบเทียบรายเดือน</button>
+      <button id="tab-cmp" onclick="setTab('cmp')">📅 เปรียบเทียบ เดือน/ปี</button>
       <button id="tab-dash" onclick="setTab('dash')">📈 Dashboard</button>
     </div>
     <div class="filter">
@@ -250,9 +250,18 @@
       <div class="grp" id="gDate"><input class="d" id="d1" placeholder="วว/ดด/ปปปป" inputmode="numeric" maxlength="10" autocomplete="off"><span class="lbl">ถึง</span><input class="d" id="d2" placeholder="วว/ดด/ปปปป" inputmode="numeric" maxlength="10" autocomplete="off"></div>
       <div class="grp" id="gYear"><select id="y1" onchange="render()"></select></div>
       </span>
-      <div class="grp fCmp hidden"><span class="lbl">ถึงเดือน</span><select id="cmpEnd" onchange="render()"></select>
+      <div class="grp fCmpU hidden"><span class="lbl">เปรียบเทียบ</span>
+        <select id="cmpUnit" onchange="onUnit()"><option value="month">รายเดือน</option><option value="year">รายปี</option></select>
+      </div>
+      <div class="grp fCmp fMon hidden"><span class="lbl">ถึงเดือน</span><select id="cmpEnd" onchange="render()"></select>
         <span class="lbl">ย้อนหลัง</span>
         <select id="cmpN" onchange="render()"><option value="3">3 เดือน</option><option value="6">6 เดือน</option><option value="12" selected>12 เดือน</option><option value="24">24 เดือน</option></select>
+      </div>
+      <div class="grp fYear hidden"><span class="lbl">ถึงปี</span><select id="yEnd" onchange="render()"></select>
+        <span class="lbl">ย้อนหลัง</span>
+        <select id="yN" onchange="render()"><option value="3">3 ปี</option><option value="5" selected>5 ปี</option><option value="10">10 ปี</option><option value="99">ทั้งหมด</option></select>
+        <span class="lbl">ช่วงในแต่ละปี</span>
+        <select id="yMode" onchange="render()"><option value="full">ทั้งปี (ม.ค.–ธ.ค.)</option><option value="ytd" id="optYtd">ม.ค. ถึงวันเดียวกัน</option></select>
       </div>
       <div class="sep fGrp"></div>
       <div class="grp fGrp"><span class="lbl">แสดงตาม</span>
@@ -408,6 +417,8 @@ function setupFilter(){
   $('m1').value = months.includes(keep) ? keep : months[0]; $('m2').value = $('m1').value; $('y1').value = years[0];
   if (!$('d1').value){ $('d1').value = isoToBE(months[0]+'-01'); $('d2').value = isoToBE(DATA.maxD); }
   const keepE = $('cmpEnd').value; $('cmpEnd').innerHTML = opt; $('cmpEnd').value = months.includes(keepE) ? keepE : months[0];
+  const keepY = $('yEnd').value; $('yEnd').innerHTML = years.map(y=>`<option value="${y}">ปี ${+y+543}</option>`).join(''); $('yEnd').value = years.includes(keepY) ? keepY : years[0];
+  $('optYtd').textContent = `ม.ค. ถึง ${isoToBE(DATA.maxD).slice(0,5)} ของทุกปี (ช่วงเดียวกัน)`;
   setupCustList();
   onMode(true);
 }
@@ -450,12 +461,17 @@ function setTab(t){
   document.body.classList.toggle('wide', t==='cmp');
   ['sum','cmp','dash'].forEach(x=>$('tab-'+x).classList.toggle('on', x===t));
   document.querySelectorAll('.fSum').forEach(e=>e.classList.toggle('hidden', t!=='sum'));
-  document.querySelectorAll('.fCmp').forEach(e=>e.classList.toggle('hidden', t==='sum'));
+  document.querySelectorAll('.fCmpU').forEach(e=>e.classList.toggle('hidden', t!=='cmp'));
+  const yr = t==='cmp' && $('cmpUnit').value==='year';
+  document.querySelectorAll('.fCmp').forEach(e=>e.classList.toggle('hidden', t==='sum' || yr));
+  document.querySelectorAll('.fYear').forEach(e=>e.classList.toggle('hidden', !yr));
   document.querySelectorAll('.fGrp').forEach(e=>e.classList.toggle('hidden', t==='dash'));
   $('optGbMonth').disabled = (t==='cmp');
   if (t==='cmp' && $('groupBy').value==='month'){ $('groupBy').value='cust'; $('sortSel').value='net'; }
   render();
 }
+
+function onUnit(){ setTab('cmp'); }
 
 // ---------- ตัวกรองลูกค้า ----------
 function setupCustList(){
@@ -620,17 +636,38 @@ function ymAdd(ym,k){ let [y,m]=ym.split('-').map(Number); m+=k; while(m<1){m+=1
 function monthsBack(end,n){ const out=[]; for(let i=n-1;i>=0;i--) out.push(ymAdd(end,-i)); return out; }
 const ymShort = ym => `${TH_M[+ym.slice(5,7)-1]} ${String(+ym.slice(0,4)+543).slice(2)}`;
 function buildCompare(){
-  const end = $('cmpEnd').value, n = +$('cmpN').value, months = monthsBack(end,n);
-  const from = months[0]+'-01', to = lastDay(end);
   const gb = $('groupBy').value==='emp' ? 'emp' : 'cust', cust = getCust();
-  const docs = applyCust(DATA.docs).filter(d=>d.d>=from && d.d<=to);
-  const idx = Object.fromEntries(months.map((m,i)=>[m,i]));
+  const unit = $('cmpUnit').value;
+  let B, from, to, period, title, keyOf, partialLast, n;
+  if (unit==='year'){
+    const yE = +$('yEnd').value, yMin = +DATA.minD.slice(0,4), yN = +$('yN').value;
+    const ys = []; for (let y=Math.max(yMin, yE-yN+1); y<=yE; y++) ys.push(y);
+    const ytd = $('yMode').value==='ytd', md = DATA.maxD.slice(5);       // เช่น 11-16
+    B = ys.map(y=>({key:String(y), short:`${y+543}`, full:`ปี ${y+543}`}));
+    from = `${ys[0]}-01-01`; to = `${yE}-12-31`;
+    keyOf = d => (ytd && d.d.slice(5) > md) ? null : d.d.slice(0,4);
+    partialLast = !ytd && DATA.maxD < to && DATA.maxD >= `${yE}-01-01`;
+    n = ys.length;
+    title = `รายงานเปรียบเทียบยอดขายรายปี ตาม${gb==='cust'?'ลูกค้า':'พนักงานขาย'} (${n} ปี)`;
+    period = `ปี ${ys[0]+543} – ${yE+543}${ytd?` · เฉพาะช่วง 01/01 ถึง ${isoToBE(DATA.maxD).slice(0,5)} ของทุกปี`:' · ทั้งปี'}${cust.label?' · '+cust.label:''}`;
+  } else {
+    const end = $('cmpEnd').value; n = +$('cmpN').value;
+    const months = monthsBack(end,n);
+    B = months.map(m=>({key:m, short:ymShort(m), full:ymLabel(m)}));
+    from = months[0]+'-01'; to = lastDay(end);
+    keyOf = d => d.d.slice(0,7);
+    partialLast = DATA.maxD < to && DATA.maxD >= end+'-01';
+    title = `รายงานเปรียบเทียบยอดขายรายเดือน ตาม${gb==='cust'?'ลูกค้า':'พนักงานขาย'} (ย้อนหลัง ${n} เดือน)`;
+    period = `เดือน ${ymLabel(months[0])} – ${ymLabel(end)}${cust.label?' · '+cust.label:''}`;
+  }
+  const idx = Object.fromEntries(B.map((b,i)=>[b.key,i]));
+  const docs = applyCust(DATA.docs).filter(d=>d.d>=from && d.d<=to && idx[keyOf(d)]!==undefined);
   const map = new Map();
   docs.forEach(d=>{
     const k = gb==='cust' ? d.code : (d.emp||'-');
     let g = map.get(k);
-    if (!g){ g = {key:k, name: gb==='cust'?d.name:(d.empn||'-'), v:months.map(()=>0)}; map.set(k,g); }
-    g.v[idx[d.d.slice(0,7)]] += d.amt;
+    if (!g){ g = {key:k, name: gb==='cust'?d.name:(d.empn||'-'), v:B.map(()=>0)}; map.set(k,g); }
+    g.v[idx[keyOf(d)]] += d.amt;
     if (gb==='cust') g.name = d.name;
   });
   const rows = [...map.values()].map(g=>{
@@ -638,11 +675,9 @@ function buildCompare(){
     const a = g.v[n-1], b = g.v[n-2]; g.chg = (n>1 && Math.abs(b)>0.005) ? (a-b)/Math.abs(b) : null;
     return g;
   });
-  const colTot = months.map((m,i)=>r2(rows.reduce((s,r)=>s+r.v[i],0)));
+  const colTot = B.map((b,i)=>r2(rows.reduce((s,r)=>s+r.v[i],0)));
   const total = r2(colTot.reduce((a,b)=>a+b,0));
-  return {kind:'cmp', gb, months, from, to, rows, colTot, total, n, docs,
-    title:`รายงานเปรียบเทียบยอดขายรายเดือน ตาม${gb==='cust'?'ลูกค้า':'พนักงานขาย'} (ย้อนหลัง ${n} เดือน)`,
-    period:`เดือน ${ymLabel(months[0])} – ${ymLabel(end)}${cust.label?' · '+cust.label:''}`,
+  return {kind:'cmp', unit, uw: unit==='year'?'ปี':'เดือน', gb, B, from, to, rows, colTot, total, n, docs, partialLast, title, period,
     note:'หมายเหตุ: ยอดขายสุทธิก่อน VAT (รวมใบลด/เพิ่มหนี้ ไม่รวมใบที่ยกเลิก)'};
 }
 function sparkSVG(vals){
@@ -655,17 +690,17 @@ function renderCompare(){
   VIEW = buildCompare(); const v = VIEW;
   const s = $('sortSel').value;
   if (s==='net') v.rows.sort((a,b)=>b.net-a.net); else if (s==='name') v.rows.sort((a,b)=>String(a.name).localeCompare(String(b.name),'th')); else v.rows.sort((a,b)=>a.key<b.key?-1:1);
-  $('rTitle').textContent = v.title; $('rPeriod').textContent = v.period; $('rDays').textContent = `${v.n} เดือน`;
+  $('rTitle').textContent = v.title; $('rPeriod').textContent = v.period; $('rDays').textContent = `${v.n} ${v.uw}`;
   const best = v.colTot.indexOf(Math.max(...v.colTot));
   const allM = v.rows.filter(r=>r.active===v.n).length;
   $('kpis').innerHTML = `
-    <div class="kpi"><div class="l">ยอดขายรวม ${v.n} เดือน</div><div class="v big">${fmt0(v.total)}</div><div class="s">เฉลี่ย ${fmt0(r2(v.total/v.n))} / เดือน</div></div>
-    <div class="kpi"><div class="l">เดือนยอดสูงสุด</div><div class="v">${v.total?ymLabel(v.months[best]):'-'}</div><div class="s">${fmt0(v.colTot[best]||0)}</div></div>
-    <div class="kpi"><div class="l">${v.gb==='cust'?'ลูกค้าที่มียอด':'พนักงานที่มียอด'}</div><div class="v">${v.rows.length.toLocaleString()} ${v.gb==='cust'?'ราย':'คน'}</div><div class="s">มียอดทุกเดือน ${allM.toLocaleString()}</div></div>
-    <div class="kpi"><div class="l">${ymShort(v.months[v.n-1])} เทียบ ${v.n>1?ymShort(v.months[v.n-2]):'-'}${(DATA.maxD<v.to&&DATA.maxD>=v.months[v.n-1]+'-01')?` <span title="เดือนล่าสุดยังไม่ครบเดือน">(ข้อมูลถึง ${isoToBE(DATA.maxD).slice(0,5)})</span>`:''}</div>${(()=>{const a=v.colTot[v.n-1],b=v.colTot[v.n-2]; if(v.n<2||!b) return '<div class="v muted">-</div><div class="s">&nbsp;</div>'; const p=(a-b)/Math.abs(b)*100; return `<div class="v ${p>=0?'up':'down'}">${p>=0?'▲':'▼'} ${Math.abs(p).toFixed(1)}%</div><div class="s">${fmt0(a)} vs ${fmt0(b)}</div>`;})()}</div>`;
+    <div class="kpi"><div class="l">ยอดขายรวม ${v.n} ${v.uw}</div><div class="v big">${fmt0(v.total)}</div><div class="s">เฉลี่ย ${fmt0(r2(v.total/v.n))} / ${v.uw}</div></div>
+    <div class="kpi"><div class="l">${v.uw}ยอดสูงสุด</div><div class="v">${v.total?v.B[best].full:'-'}</div><div class="s">${fmt0(v.colTot[best]||0)}</div></div>
+    <div class="kpi"><div class="l">${v.gb==='cust'?'ลูกค้าที่มียอด':'พนักงานที่มียอด'}</div><div class="v">${v.rows.length.toLocaleString()} ${v.gb==='cust'?'ราย':'คน'}</div><div class="s">มียอดทุก${v.uw} ${allM.toLocaleString()}</div></div>
+    <div class="kpi"><div class="l">${v.B[v.n-1].short} เทียบ ${v.n>1?v.B[v.n-2].short:'-'}${v.partialLast?` <span title="ช่วงล่าสุดยังไม่ครบ">(ข้อมูลถึง ${isoToBE(DATA.maxD).slice(0,5)})</span>`:''}</div>${(()=>{const a=v.colTot[v.n-1],b=v.colTot[v.n-2]; if(v.n<2||!b) return '<div class="v muted">-</div><div class="s">&nbsp;</div>'; const p=(a-b)/Math.abs(b)*100; return `<div class="v ${p>=0?'up':'down'}">${p>=0?'▲':'▼'} ${Math.abs(p).toFixed(1)}%</div><div class="s">${fmt0(a)} vs ${fmt0(b)}</div>`;})()}</div>`;
   const T = $('tblCmp');
   T.tHead.innerHTML = `<tr><th>ลำดับ</th><th class="hm">${v.gb==='cust'?'รหัสลูกค้า':'รหัส'}</th><th>${v.gb==='cust'?'ชื่อลูกค้า':'พนักงานขาย'}</th>`
-    + v.months.map(m=>`<th class="mo">${ymShort(m)}</th>`).join('') + `<th>รวม</th><th class="hm">เฉลี่ย/เดือน</th><th class="hm">แนวโน้ม</th><th>${ymShort(v.months[v.n-1])} vs ${v.n>1?ymShort(v.months[v.n-2]):'-'}${(DATA.maxD<v.to&&DATA.maxD>=v.months[v.n-1]+'-01')?`<br><small>(ข้อมูลถึง ${isoToBE(DATA.maxD).slice(0,5)})</small>`:''}</th></tr>`;
+    + v.B.map((b,i)=>`<th class="mo">${v.unit==='year'?'ปี ':''}${b.short}${(v.partialLast&&i===v.n-1)?'*':''}</th>`).join('') + `<th>รวม</th><th class="hm">เฉลี่ย/${v.uw}</th><th class="hm">แนวโน้ม</th><th>${v.B[v.n-1].short} vs ${v.n>1?v.B[v.n-2].short:'-'}${v.partialLast?`<br><small>(*ข้อมูลถึง ${isoToBE(DATA.maxD).slice(0,5)})</small>`:''}</th></tr>`;
   if (!v.rows.length){ T.tBodies[0].innerHTML = `<tr><td colspan="${v.n+7}" class="empty">ไม่มียอดขายในช่วงที่เลือก</td></tr>`; T.tFoot.innerHTML=''; return; }
   const chg = c => c===null ? '<span class="muted">-</span>' : `<span class="${c>=0?'up':'down'}">${c>=0?'▲':'▼'} ${Math.abs(c*100).toFixed(1)}%</span>`;
   T.tBodies[0].innerHTML = v.rows.map((r,i)=>`<tr><td class="c">${i+1}</td><td class="code hm">${esc(r.key)}</td><td class="name" title="${esc(r.name)}">${esc(v.gb==='cust'?shortName(r.name):r.name)}</td>`
@@ -706,14 +741,21 @@ function buildDash(){
   const lastPm = sumR(pm+'-01', partial ? clampDay(pm) : lastDay(pm));
   const lastPy = py < firstM ? null : sumR(py+'-01', partial ? clampDay(py) : lastDay(py));
   const prevTotal = ymAdd(months[0],-12) < firstM ? null : sumR(shiftYear(from,-1), shiftYear(effEnd,-1));
-  return {kind:'dash', months, cur, prev, custs, emps, total, prevTotal, n, docs, from, to, partial, effEnd, lastCur, lastPm, lastPy, pm, py,
+  // รายปี (ทุกปีในฐานข้อมูล): ทั้งปี และ ม.ค.–วันเดียวกับข้อมูลล่าสุด
+  const md = DATA.maxD.slice(5), curY = +DATA.maxD.slice(0,4), y0 = +DATA.minD.slice(0,4);
+  const yearly = {years:[], full:[], ytd:[], curY, partial: md < '12-31'};
+  for (let yy=y0; yy<=curY; yy++){ yearly.years.push(yy); yearly.full.push(0); yearly.ytd.push(0); }
+  CD.forEach(d=>{ const i = +d.d.slice(0,4)-y0; yearly.full[i]+=d.amt; if (d.d.slice(5)<=md) yearly.ytd[i]+=d.amt; });
+  yearly.full = yearly.full.map(r2); yearly.ytd = yearly.ytd.map(r2);
+  return {kind:'dash', months, cur, prev, custs, emps, total, prevTotal, n, docs, from, to, partial, yearly, effEnd, lastCur, lastPm, lastPy, pm, py,
     title:`Dashboard ยอดขาย (ย้อนหลัง ${n} เดือน)`,
     period:`เดือน ${ymLabel(months[0])} – ${ymLabel(end)}${cust.label?' · '+cust.label:''}`,
     note:'หมายเหตุ: ยอดขายสุทธิก่อน VAT (รวมใบลด/เพิ่มหนี้ ไม่รวมใบที่ยกเลิก)'};
 }
-function monthlyChart(v){
-  const box = $('chMonthly'); const W = Math.max(300, box.clientWidth || 900), H = 230;
-  const ml=56, mr=8, mt=10, mb=26, iw=W-ml-mr, ih=H-mt-mb, n=v.months.length;
+// กราฟแท่ง + เส้นประเปรียบเทียบ (ใช้ทั้งรายเดือนและรายปี)
+function barChart(box, labels, cur, prev, tipFn, H=230){
+  const v = {cur, prev}; const W = Math.max(300, box.clientWidth || 900);
+  const ml=56, mr=8, mt=10, mb=26, iw=W-ml-mr, ih=H-mt-mb, n=labels.length;
   const vals = v.cur.concat(v.prev.filter(x=>x!==null));
   const mx = Math.max(...vals, 1), mn = Math.min(0, ...vals);
   const step = niceStep((mx-mn)/4), top = Math.ceil(mx/step)*step, bot = Math.floor(mn/step)*step;
@@ -721,29 +763,40 @@ function monthlyChart(v){
   let g = '';
   for (let t=bot; t<=top+1e-6; t+=step) g += `<line class="grid" x1="${ml}" x2="${W-mr}" y1="${y(t)}" y2="${y(t)}"/><text class="ax" x="${ml-6}" y="${y(t)+3}" text-anchor="end">${compactTH(t)}</text>`;
   const every = bw < 34 ? Math.ceil(34/bw) : 1;
-  v.months.forEach((m,i)=>{
+  labels.forEach((m,i)=>{
     const cx = ml + bw*i + bw/2, val = v.cur[i], y0 = y(0), y1 = y(val), h = Math.abs(y0-y1), r = Math.min(4, h, barW/2);
     if (h>0.5){
       // แท่งมุมโค้งเฉพาะปลายแท่ง ฐานตรง
       g += val>=0 ? `<path d="M${cx-barW/2},${y0} V${y1+r} Q${cx-barW/2},${y1} ${cx-barW/2+r},${y1} H${cx+barW/2-r} Q${cx+barW/2},${y1} ${cx+barW/2},${y1+r} V${y0} Z" fill="#2a78d6"/>`
                   : `<path d="M${cx-barW/2},${y0} V${y1-r} Q${cx-barW/2},${y1} ${cx-barW/2+r},${y1} H${cx+barW/2-r} Q${cx+barW/2},${y1} ${cx+barW/2},${y1-r} V${y0} Z" fill="#2a78d6"/>`;
     }
-    if ((n-1-i)%every===0) g += `<text class="ax" x="${cx}" y="${H-8}" text-anchor="middle">${ymShort(m)}</text>`;
+    if ((n-1-i)%every===0) g += `<text class="ax" x="${cx}" y="${H-8}" text-anchor="middle">${m}</text>`;
   });
   g += `<line x1="${ml}" x2="${W-mr}" y1="${y(0)}" y2="${y(0)}" stroke="#9aa5b4"/>`;
   // เส้นปีก่อน
   const pp = v.prev.map((p,i)=>p===null?null:[ml+bw*i+bw/2, y(p)]);
   let path='', on=false; pp.forEach(pt=>{ if(!pt){on=false;return;} path += (on?'L':'M')+pt[0]+','+pt[1]+' '; on=true; });
   if (path) g += `<path d="${path}" fill="none" stroke="#8a95a5" stroke-width="2" stroke-dasharray="5 3"/>` + pp.filter(Boolean).map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="#fff" stroke="#8a95a5" stroke-width="2"/>`).join('');
-  v.months.forEach((m,i)=>{ g += `<rect class="hit" data-i="${i}" x="${ml+bw*i}" y="${mt}" width="${bw}" height="${ih}"/>`; });
-  box.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="กราฟยอดขายรายเดือน">${g}</svg>`;
+  labels.forEach((m,i)=>{ g += `<rect class="hit" data-i="${i}" x="${ml+bw*i}" y="${mt}" width="${bw}" height="${ih}"/>`; });
+  box.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="กราฟยอดขาย">${g}</svg>`;
   box.querySelectorAll('.hit').forEach(r=>{
-    const i = +r.dataset.i, c = v.cur[i], p = v.prev[i];
-    const html = `<b>${ymLabelF(v.months[i])}</b><br><span class="sw" style="background:#2a78d6"></span>ยอดขาย ${fmt0(c)}`
-      + (p===null ? '' : `<br><span class="sw" style="background:#8a95a5"></span>ปีก่อน ${fmt0(p)}${p?` (${c>=p?'▲':'▼'} ${Math.abs((c-p)/Math.abs(p)*100).toFixed(1)}%)`:''}`);
+    const html = tipFn(+r.dataset.i);
     r.addEventListener('mousemove', e=>showTip(e,html)); r.addEventListener('mouseleave', hideTip);
     r.addEventListener('click', e=>showTip(e,html));
   });
+}
+const swB = '<span class="sw" style="background:#2a78d6"></span>', swG = '<span class="sw" style="background:#8a95a5"></span>';
+const pctTxt = (c,p) => p ? ` (${c>=p?'▲':'▼'} ${Math.abs((c-p)/Math.abs(p)*100).toFixed(1)}%)` : '';
+function monthlyChart(v){
+  barChart($('chMonthly'), v.months.map(ymShort), v.cur, v.prev, i=>{ const c=v.cur[i], p=v.prev[i];
+    return `<b>${ymLabelF(v.months[i])}</b><br>${swB}ยอดขาย ${fmt0(c)}` + (p===null?'':`<br>${swG}ปีก่อน ${fmt0(p)}${pctTxt(c,p)}`); });
+}
+function yearlyChart(v){
+  const Y = v.yearly; if (!Y) return;
+  barChart($('chYearly'), Y.years.map(y=>String(y+543)+(y===Y.curY&&Y.partial?'*':'')), Y.full, Y.ytd, i=>{
+    const y=Y.years[i], f=Y.full[i], t=Y.ytd[i], pt = i>0 ? Y.ytd[i-1] : 0, pf = i>0 ? Y.full[i-1] : 0;
+    return `<b>ปี ${y+543}</b><br>${swB}${y===Y.curY&&Y.partial?`ยอดขาย (ถึง ${isoToBE(DATA.maxD).slice(0,5)})`:'ทั้งปี'} ${fmt0(f)}${y===Y.curY&&Y.partial?'':pctTxt(f,pf)}`
+      + `<br>${swG}ม.ค.–${isoToBE(DATA.maxD).slice(0,5)} ${fmt0(t)}${pctTxt(t,pt)}`; }, 210);
 }
 function hbars(list, total, topN){
   const top = list.slice(0,topN), rest = list.slice(topN), other = r2(rest.reduce((s,r)=>s+r.net,0));
@@ -771,12 +824,16 @@ function renderDash(){
       <details class="noprint"><summary style="cursor:pointer;font-size:12px;color:var(--mute)">ดูเป็นตาราง</summary>
         <table class="mtab"><thead><tr><th>เดือน</th><th>ยอดขาย</th><th>ปีก่อน</th><th>เทียบปีก่อน</th></tr></thead><tbody>${rowsM}</tbody></table></details>
     </div>
+    <div class="dcard full"><h4>ยอดขายรายปี <span class="sub">(ทุกปีในฐานข้อมูล · ชี้ที่แท่งเพื่อดูตัวเลข)</span></h4>
+      <div class="legend"><span><i style="background:#2a78d6"></i>ยอดขายทั้งปี</span><span><i class="ln" style="background:#8a95a5"></i>ม.ค.–${isoToBE(DATA.maxD).slice(0,5)} ของแต่ละปี (เทียบช่วงเดียวกัน)</span>${v.yearly.partial?`<span>* ปี ${v.yearly.curY+543} ข้อมูลถึง ${isoToBE(DATA.maxD)}</span>`:''}</div>
+      <div id="chYearly"></div>
+    </div>
     <div class="dcard"><h4>ลูกค้ายอดสูงสุด 10 อันดับ <span class="sub">${n} เดือน</span></h4>${hbars(v.custs, v.total, 10)}</div>
     <div class="dcard"><h4>ยอดขายตามพนักงานขาย <span class="sub">${n} เดือน</span></h4>${hbars(v.emps, v.total, 8)}</div>
   </div>`;
-  monthlyChart(v);
+  monthlyChart(v); yearlyChart(v);
 }
-let _rz; window.addEventListener('resize', ()=>{ clearTimeout(_rz); _rz = setTimeout(()=>{ if (TAB==='dash' && VIEW && VIEW.kind==='dash') monthlyChart(VIEW); }, 200); });
+let _rz; window.addEventListener('resize', ()=>{ clearTimeout(_rz); _rz = setTimeout(()=>{ if (TAB==='dash' && VIEW && VIEW.kind==='dash'){ monthlyChart(VIEW); yearlyChart(VIEW); } }, 200); });
 
 // ---------- Excel ----------
 function exportExcel(){
@@ -826,14 +883,14 @@ function exportExcel(){
   const wb = XLSX.utils.book_new();
   const fnRange = (a,b)=>`${isoToBE(a).replace(/\//g,'-')}_ถึง_${isoToBE(b).replace(/\//g,'-')}`;
   if (v.kind==='cmp'){
-    const nm = v.months.length, c0 = 3, cT = c0+nm, cA = cT+1;
+    const nm = v.n, c0 = 3, cT = c0+nm, cA = cT+1;
     const H = [{h:'ลำดับ',t:'ctr'},{h:v.gb==='cust'?'รหัสลูกค้า':'รหัส',t:'txt'},{h:v.gb==='cust'?'ชื่อลูกค้า':'พนักงานขาย',t:'txt'}]
-      .concat(v.months.map(m=>({h:ymLabel(m),t:'num'})))
-      .concat([{h:'รวม',t:'numB',f:x=>`SUM(${L(c0)}${x}:${L(cT-1)}${x})`},{h:'เฉลี่ย/เดือน',t:'num',f:x=>`${L(cT)}${x}/${nm}`}]);
+      .concat(v.B.map((b,i)=>({h:b.full+((v.partialLast&&i===nm-1)?` (ถึง ${isoToBE(DATA.maxD).slice(0,5)})`:''),t:'num'})))
+      .concat([{h:'รวม',t:'numB',f:x=>`SUM(${L(c0)}${x}:${L(cT-1)}${x})`},{h:'เฉลี่ย/'+v.uw,t:'num',f:x=>`${L(cT)}${x}/${nm}`}]);
     const rows = v.rows.map((r,i)=>[i+1,r.key,r.name].concat(r.v).concat([r.net,r.avg]));
     const sums = []; for (let c=c0;c<=cA;c++) sums.push(c);
-    XLSX.utils.book_append_sheet(wb, sheet(v.title, H, rows, [6,16,42].concat(v.months.map(()=>13)).concat([15,13]), sums, -1), 'เปรียบเทียบรายเดือน');
-    XLSX.writeFile(wb, `เปรียบเทียบยอดขาย_${fnRange(v.from,v.to)}.xlsx`); return;
+    XLSX.utils.book_append_sheet(wb, sheet(v.title, H, rows, [6,16,42].concat(v.B.map(()=>14)).concat([15,13]), sums, -1), v.unit==='year'?'เปรียบเทียบรายปี':'เปรียบเทียบรายเดือน');
+    XLSX.writeFile(wb, v.unit==='year' ? `เปรียบเทียบยอดขายรายปี_${v.B[0].short}-${v.B[v.n-1].short}.xlsx` : `เปรียบเทียบยอดขาย_${fnRange(v.from,v.to)}.xlsx`); return;
   }
   if (v.kind==='dash'){
     const H = [{h:'ลำดับ',t:'ctr'},{h:'เดือน',t:'txt'},{h:'ยอดขาย',t:'numB'},{h:'ช่วงเดียวกันปีก่อน',t:'num'},
@@ -844,6 +901,9 @@ function exportExcel(){
     XLSX.utils.book_append_sheet(wb, sheet('ยอดขายตามลูกค้า', H2, v.custs.map((r,i)=>[i+1,r.key,r.name,r.net]), [6,18,50,18], [3], 3), 'ตามลูกค้า');
     const H3 = [{h:'ลำดับ',t:'ctr'},{h:'รหัส',t:'txt'},{h:'พนักงานขาย',t:'txt'},{h:'ยอดขาย (ก่อน VAT)',t:'numB'}];
     XLSX.utils.book_append_sheet(wb, sheet('ยอดขายตามพนักงานขาย', H3, v.emps.map((r,i)=>[i+1,r.key,r.name,r.net]), [6,14,34,18], [3], 3), 'ตามพนักงานขาย');
+    const Y = v.yearly, cut = isoToBE(DATA.maxD).slice(0,5);
+    const H4 = [{h:'ลำดับ',t:'ctr'},{h:'ปี',t:'ctr'},{h:'ยอดขายทั้งปี',t:'numB'},{h:`ม.ค. ถึง ${cut}`,t:'num'},{h:`เปลี่ยนแปลง % (ม.ค.–${cut})`,t:'pct',f:x=>`IF(OR(ROW()=7,D${x-1}=0),"-",(D${x}-D${x-1})/ABS(D${x-1}))`}];
+    XLSX.utils.book_append_sheet(wb, sheet('ยอดขายรายปี', H4, Y.years.map((y,i)=>[i+1,`${y+543}${y===Y.curY&&Y.partial?` (ถึง ${cut})`:''}`,Y.full[i],Y.ytd[i],0]), [6,20,18,18,22], [2,3], -1), 'รายปี');
     XLSX.writeFile(wb, `Dashboard_ยอดขาย_${fnRange(v.from,v.to)}.xlsx`); return;
   }
   const cols = v.cols;
