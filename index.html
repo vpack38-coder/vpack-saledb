@@ -84,6 +84,25 @@
   .modal .info{margin-top:8px;font-size:12px;color:var(--mute)}
   .modal .act{margin-top:12px;display:flex;justify-content:flex-end;gap:8px}
 
+  /* แถบตั้งค่าการพิมพ์ */
+  .printbar{margin-top:10px;background:#fffbea;border:1px solid #f0d68a;border-radius:6px;padding:8px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:12px}
+  .printbar select{font-family:Tahoma;font-size:12px;padding:3px 4px;border:1px solid #b9c3cf;border-radius:3px}
+  .printbar .lbl{color:var(--mute)}
+  .printbar .hint{color:var(--warn);font-size:11px}
+  .printbar .sp{flex:1}
+  /* รายงานตามฟอนต์/ขนาดที่เลือก (ตอนดูตัวอย่าง + ตอนพิมพ์) */
+  .paper.pp{font-family:var(--pf);font-size:var(--ps);line-height:1.3}
+  .paper.pp *{font-family:inherit}
+  .paper.pp .rhead .co{font-size:1.1em}
+  .paper.pp .rhead .tt{font-size:1.25em}
+  .paper.pp .rhead .meta{font-size:.92em}
+  .paper.pp .rhead .period{font-size:1.08em}
+  .paper.pp .note,.paper.pp .kpi .l,.paper.pp .kpi .s,.paper.pp .foot{font-size:.85em}
+  .paper.pp .kpi .v{font-size:1.15em}
+  .paper.pp .kpi .v.vn{font-size:1em!important}
+  .paper.pp th,.paper.pp td.code,.paper.pp .check{font-size:.92em}
+  .paper.pp td,.paper.pp td.name{font-size:1em}
+
   /* ---------- มือถือ ---------- */
   @media (max-width:720px){
     body{font-size:14px}
@@ -108,12 +127,12 @@
   }
   @media print{
     body{background:#fff}.wrap{max-width:none;padding:0}
-    .topbar,.filter,.tools,.noprint{display:none!important}
+    .topbar,.filter,.tools,.printbar,.noprint{display:none!important}
     .paper{box-shadow:none;margin:0;padding:0}
     th,.share .bar,.kpi,tfoot td,.note{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    @page{size:A4 landscape;margin:10mm}
   }
 </style>
+<style id="pageStyle">@page{size:A4 landscape;margin:10mm}</style>
 </head>
 <body>
 <div class="wrap">
@@ -135,9 +154,37 @@
       <span class="upd" id="updInfo"></span>
       <span class="sp"></span>
       <button class="btn orange hidden" id="btnUpload" onclick="$('file').click()">⬆ อัปเดตข้อมูล</button>
-      <button class="btn hm-btn" onclick="window.print()">🖨 พิมพ์</button>
+      <button class="btn hm-btn" onclick="togglePrint()">🖨 พิมพ์</button>
       <button class="btn green" onclick="exportExcel()">⬇ Excel</button>
       <button class="btn ghost" onclick="logout()">ออก</button>
+    </div>
+    <div class="printbar hidden" id="printbar">
+      <b>🖨 ตั้งค่าการพิมพ์</b>
+      <span class="lbl">ฟอนต์</span>
+      <select id="pFont" onchange="onFont()">
+        <option value="Tahoma">Tahoma</option>
+        <option value="Sarabun">Sarabun (สารบรรณ)</option>
+        <option value="TH Sarabun New">TH Sarabun New</option>
+        <option value="Angsana New">Angsana New</option>
+        <option value="Cordia New">Cordia New</option>
+        <option value="Browallia New">Browallia New</option>
+        <option value="Leelawadee UI">Leelawadee UI</option>
+        <option value="Arial">Arial</option>
+      </select>
+      <span class="lbl">ขนาด</span>
+      <select id="pSize" onchange="applyPrint()">
+        <option>8</option><option>9</option><option>10</option><option>11</option><option>12</option>
+        <option>13</option><option>14</option><option>15</option><option>16</option><option>18</option><option>20</option>
+      </select><span class="lbl">pt</span>
+      <span class="lbl">กระดาษ</span>
+      <select id="pPage" onchange="applyPrint()">
+        <option value="A4 landscape">A4 แนวนอน</option>
+        <option value="A4 portrait">A4 แนวตั้ง</option>
+      </select>
+      <span class="hint" id="pHint"></span>
+      <span class="sp"></span>
+      <button class="btn green" onclick="window.print()">🖨 สั่งพิมพ์</button>
+      <button class="btn line" onclick="togglePrint(false)">ปิด</button>
     </div>
     <input type="file" id="file" accept=".csv,.CSV" class="hidden">
 
@@ -390,7 +437,7 @@ function render(){
     const p = v.prev.amt, diff = r2(t.net - p), pct = p ? diff/p*100 : 0;
     k += `<div class="kpi"><div class="l">เทียบช่วงเดียวกันปีก่อน</div><div class="v ${diff>=0?'up':'down'}">${diff>=0?'▲':'▼'} ${p?Math.abs(pct).toFixed(1)+'%':'-'}</div><div class="s">${isoToBE(v.prev.from).slice(0,5)}–${isoToBE(v.prev.to)} : ${fmt0(p)}</div></div>`;
   } else k += `<div class="kpi"><div class="l">เทียบช่วงเดียวกันปีก่อน</div><div class="v muted">-</div><div class="s">ไม่มีข้อมูลปีก่อน</div></div>`;
-  if (top) k += `<div class="kpi"><div class="l">${v.gb==='month'?'เดือนยอดสูงสุด':v.gb==='emp'?'พนักงานยอดสูงสุด':'ลูกค้ายอดสูงสุด'}</div><div class="v" style="font-size:13px">${esc(shortName(top.name))}</div><div class="s">${fmt0(top.net)} (${t.net?(top.net/t.net*100).toFixed(1):0}%)</div></div>`;
+  if (top) k += `<div class="kpi"><div class="l">${v.gb==='month'?'เดือนยอดสูงสุด':v.gb==='emp'?'พนักงานยอดสูงสุด':'ลูกค้ายอดสูงสุด'}</div><div class="v vn" style="font-size:13px">${esc(shortName(top.name))}</div><div class="s">${fmt0(top.net)} (${t.net?(top.net/t.net*100).toFixed(1):0}%)</div></div>`;
   $('kpis').innerHTML = k;
 
   const cols = v.cols, hm = c => c.m===false ? ' hm' : '';
@@ -579,6 +626,52 @@ async function doUpload(){
     $('btnConfirm').disabled = false; $('btnConfirm').textContent = 'ยืนยันอัปเดต';
   }finally{ $('loading').classList.add('hidden'); }
 }
+
+// ---------- ตั้งค่าการพิมพ์ (ฟอนต์ / ขนาด / กระดาษ) ----------
+const PRINT_KEY = 'vpack_sales_print';
+const FONT_CSS = {
+  'Tahoma':"Tahoma, sans-serif", 'Sarabun':"'Sarabun', Tahoma, sans-serif",
+  'TH Sarabun New':"'TH Sarabun New','TH SarabunPSK', Tahoma, sans-serif",
+  'Angsana New':"'Angsana New','AngsanaUPC', serif", 'Cordia New':"'Cordia New','CordiaUPC', sans-serif",
+  'Browallia New':"'Browallia New','BrowalliaUPC', sans-serif",
+  'Leelawadee UI':"'Leelawadee UI','Leelawadee', Tahoma, sans-serif", 'Arial':"Arial, sans-serif"
+};
+const SMALL_FONTS = ['TH Sarabun New','Angsana New','Cordia New','Browallia New'];   // ฟอนต์ที่ตัวเล็กกว่าปกติ
+function loadPrintSettings(){
+  let st = {font:'Tahoma', size:'10', page:'A4 landscape'};
+  try { Object.assign(st, JSON.parse(lsGet(PRINT_KEY)||'{}')); } catch(e){}
+  $('pFont').value = st.font; $('pSize').value = st.size; $('pPage').value = st.page;
+  applyPrint(true);
+}
+function onFont(){
+  const f = $('pFont').value, sz = +$('pSize').value;
+  if (SMALL_FONTS.includes(f) && sz < 14) $('pSize').value = '14';
+  if (!SMALL_FONTS.includes(f) && sz > 12) $('pSize').value = '10';
+  applyPrint();
+}
+function applyPrint(silent){
+  const f = $('pFont').value, sz = $('pSize').value, pg = $('pPage').value;
+  const paper = $('report');
+  paper.style.setProperty('--pf', FONT_CSS[f] || f);
+  paper.style.setProperty('--ps', sz + 'pt');
+  $('pageStyle').textContent = `@page{size:${pg};margin:10mm}`;
+  if (f==='Sarabun' && !$('gfSarabun')){
+    const l = document.createElement('link'); l.id='gfSarabun'; l.rel='stylesheet';
+    l.href='https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap'; document.head.appendChild(l);
+  }
+  $('pHint').textContent = SMALL_FONTS.includes(f) ? 'ฟอนต์นี้ต้องมีในเครื่อง และตัวเล็กกว่าปกติ แนะนำ 14–16 pt'
+                         : f==='Sarabun' ? 'โหลดจากอินเทอร์เน็ต' : '';
+  if (!silent) lsSet(PRINT_KEY, JSON.stringify({font:f, size:sz, page:pg}));
+}
+function togglePrint(show){
+  const bar = $('printbar');
+  const on = show===undefined ? bar.classList.contains('hidden') : show;
+  bar.classList.toggle('hidden', !on);
+  $('report').classList.toggle('pp', on);     // ดูตัวอย่างบนจอ
+}
+window.addEventListener('beforeprint', ()=>$('report').classList.add('pp'));
+window.addEventListener('afterprint', ()=>{ if ($('printbar').classList.contains('hidden')) $('report').classList.remove('pp'); });
+loadPrintSettings();
 
 // ---------- start ----------
 const saved = lsGet(PIN_KEY);
