@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>รายงานยอดขาย - V-pack</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<style>
+  :root{--navy:#1f3a5f;--navy2:#2c5282;--line:#d5dbe3;--soft:#f3f6fa;--txt:#1e2733;--mute:#6b7685;--ok:#1e7f4f;--warn:#b54708;--bar:#3b6ea8;--red:#b42318}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Tahoma,sans-serif;font-size:13px;color:var(--txt);background:#e9edf2;line-height:1.35}
+  .wrap{max-width:1180px;margin:0 auto;padding:12px}
+  .topbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;background:var(--navy);color:#fff;padding:8px 12px;border-radius:6px}
+  .topbar h1{font-size:15px;margin:0}
+  .topbar .upd{font-size:11px;opacity:.8}
+  .topbar .sp{flex:1}
+  .btn{font-family:Tahoma;font-size:12px;border:1px solid transparent;border-radius:4px;padding:5px 10px;cursor:pointer;background:#fff;color:var(--navy)}
+  .btn:hover{filter:brightness(.95)}
+  .btn.green{background:#1e7f4f;color:#fff}
+  .btn.orange{background:#c2410c;color:#fff}
+  .btn.ghost{background:transparent;color:#fff;border-color:rgba(255,255,255,.5)}
+  .btn.line{background:#fff;border-color:#b9c3cf}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  /* login */
+  .login{max-width:340px;margin:60px auto;background:#fff;border-radius:8px;padding:24px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+  .login h2{margin:0 0 4px;color:var(--navy);font-size:18px}
+  .login p{margin:0 0 14px;color:var(--mute);font-size:12px}
+  .login input[type=password]{width:100%;font-family:Tahoma;font-size:24px;letter-spacing:8px;text-align:center;padding:8px;border:1px solid #b9c3cf;border-radius:6px}
+  .login .btn{width:100%;margin-top:10px;padding:9px;font-size:15px;background:var(--navy);color:#fff}
+  .login label{display:block;margin-top:10px;font-size:12px;color:var(--mute)}
+  .login .err{color:var(--red);margin-top:8px;min-height:16px;font-size:12px}
+  /* filter */
+  .filter{margin-top:10px;background:#fff;border-radius:6px;padding:8px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-size:12px}
+  .filter select,.filter input{font-family:Tahoma;font-size:12px;padding:3px 4px;border:1px solid #b9c3cf;border-radius:3px}
+  .filter input.d{width:92px;text-align:center}
+  .filter .lbl{color:var(--mute)}
+  .filter .grp{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+  .filter .sep{width:1px;height:20px;background:var(--line)}
+  .quick button{font-family:Tahoma;font-size:11px;border:1px solid #b9c3cf;background:var(--soft);border-radius:3px;padding:2px 6px;cursor:pointer}
+  .quick button:hover{background:#e2eaf4}
+  .paper{background:#fff;margin-top:10px;border-radius:6px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,.06)}
+  .rhead{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;border-bottom:2px solid var(--navy);padding-bottom:6px}
+  .rhead .co{font-size:14px;font-weight:bold;color:var(--navy)}
+  .rhead .tt{font-size:16px;font-weight:bold;margin-top:2px}
+  .rhead .meta{text-align:right;color:var(--mute);font-size:12px}
+  .rhead .period{font-size:13px;color:var(--txt);font-weight:bold}
+  .note{display:inline-block;margin-top:3px;background:#fff4e5;color:var(--warn);border:1px solid #f5c58a;border-radius:3px;padding:1px 6px;font-size:11px}
+  .kpis{display:flex;flex-wrap:wrap;margin:10px 0;border:1px solid var(--line);border-radius:4px;overflow:hidden;background:var(--line);gap:1px}
+  .kpi{flex:1 1 150px;padding:6px 10px;background:var(--soft);min-width:0}
+  .kpi .l{font-size:11px;color:var(--mute)}
+  .kpi .v{font-size:15px;font-weight:bold;color:var(--navy)}
+  .kpi .v.big{color:#0f5132}
+  .kpi .s{font-size:11px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .up{color:#1e7f4f!important}.down{color:var(--red)!important}
+  .tools{display:flex;align-items:center;gap:8px;margin:6px 0;font-size:12px;color:var(--mute)}
+  .tools select{font-family:Tahoma;font-size:12px;padding:2px 4px}
+  .tools .sp{flex:1}
+  table{width:100%;border-collapse:collapse}
+  th{background:var(--navy);color:#fff;font-weight:normal;font-size:12px;padding:4px 6px;border:1px solid #16304f;white-space:nowrap}
+  td{padding:2px 6px;border:1px solid var(--line);white-space:nowrap}
+  tbody tr:nth-child(even) td{background:#f8fafc}
+  tbody tr:hover td{background:#eaf2fb}
+  td.n{text-align:right;font-variant-numeric:tabular-nums}
+  td.c{text-align:center}
+  td.name{white-space:normal;min-width:220px}
+  td.code{color:var(--mute);font-size:12px}
+  tfoot td{font-weight:bold;background:#e3eaf3;border-top:2px solid var(--navy)}
+  .share{display:flex;align-items:center;gap:5px;justify-content:flex-end}
+  .share .bar{height:8px;background:var(--bar);border-radius:2px}
+  .share span{min-width:42px;text-align:right}
+  .muted{color:#aab3bf}
+  .empty{padding:20px;text-align:center;color:var(--mute)}
+  .check{margin-top:8px;font-size:12px;color:var(--mute)}
+  .foot{margin-top:10px;display:flex;justify-content:space-between;color:var(--mute);font-size:11px}
+  .hidden{display:none!important}
+  .loading{text-align:center;padding:40px;color:var(--mute)}
+  /* modal (admin) */
+  .modal-bg{position:fixed;inset:0;background:rgba(15,25,40,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:10px}
+  .modal{background:#fff;border-radius:8px;max-width:520px;width:100%;padding:16px 18px;box-shadow:0 8px 30px rgba(0,0,0,.25)}
+  .modal h3{margin:0 0 8px;color:var(--navy);font-size:15px}
+  .modal table td{padding:4px 8px}
+  .modal .warn{margin-top:8px;padding:6px 8px;border-radius:4px;background:#fdecea;color:var(--red);font-size:12px}
+  .modal .info{margin-top:8px;font-size:12px;color:var(--mute)}
+  .modal .act{margin-top:12px;display:flex;justify-content:flex-end;gap:8px}
+
+  /* ---------- มือถือ ---------- */
+  @media (max-width:720px){
+    body{font-size:14px}
+    .wrap{padding:6px}
+    .topbar h1{font-size:14px}
+    .topbar .upd{width:100%;order:9}
+    .filter{font-size:13px}
+    .filter .sep{display:none}
+    .filter select,.filter input{font-size:14px;padding:5px}
+    .filter input.d{width:110px}
+    .quick button{font-size:13px;padding:5px 8px}
+    .paper{padding:10px}
+    .rhead{flex-direction:column;align-items:flex-start}
+    .rhead .meta{text-align:left}
+    .kpi{flex:1 1 45%}
+    .kpi .v{font-size:16px}
+    .hm{display:none}
+    td.name{min-width:0;font-size:13px}
+    td,th{padding:4px}
+    .share .bar{display:none}
+    .btn.hm-btn{display:none}
+  }
+  @media print{
+    body{background:#fff}.wrap{max-width:none;padding:0}
+    .topbar,.filter,.tools,.noprint{display:none!important}
+    .paper{box-shadow:none;margin:0;padding:0}
+    th,.share .bar,.kpi,tfoot td,.note{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    @page{size:A4 landscape;margin:10mm}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== หน้าใส่รหัส ===== -->
+  <div class="login" id="loginBox">
+    <h2>📊 รายงานยอดขาย V-pack</h2>
+    <p>กรุณาใส่รหัส PIN เพื่อดูรายงาน</p>
+    <input type="password" id="pin" inputmode="numeric" maxlength="12" autocomplete="off" onkeydown="if(event.key==='Enter')login()">
+    <label><input type="checkbox" id="remember" checked> จำรหัสไว้ในเครื่องนี้</label>
+    <button class="btn" id="btnLogin" onclick="login()">เข้าดูรายงาน</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+
+  <!-- ===== หน้ารายงาน ===== -->
+  <div id="app" class="hidden">
+    <div class="topbar">
+      <h1>📊 รายงานยอดขายประจำงวด</h1>
+      <span class="upd" id="updInfo"></span>
+      <span class="sp"></span>
+      <button class="btn orange hidden" id="btnUpload" onclick="$('file').click()">⬆ อัปเดตข้อมูล</button>
+      <button class="btn hm-btn" onclick="window.print()">🖨 พิมพ์</button>
+      <button class="btn green" onclick="exportExcel()">⬇ Excel</button>
+      <button class="btn ghost" onclick="logout()">ออก</button>
+    </div>
+    <input type="file" id="file" accept=".csv,.CSV" class="hidden">
+
+    <div class="filter">
+      <div class="grp"><span class="lbl">ช่วงรายงาน</span>
+        <select id="mode" onchange="onMode()">
+          <option value="month">รายเดือน</option>
+          <option value="mrange">ช่วงเดือน</option>
+          <option value="drange">ช่วงวันที่</option>
+          <option value="year">ทั้งปี</option>
+          <option value="all">ทั้งหมด</option>
+        </select>
+      </div>
+      <div class="grp" id="gMonth"><select id="m1" onchange="render()"></select><span id="mTo" class="lbl">ถึง</span><select id="m2" onchange="render()"></select></div>
+      <div class="grp" id="gDate"><input class="d" id="d1" placeholder="วว/ดด/ปปปป" inputmode="numeric" onchange="render()"><span class="lbl">ถึง</span><input class="d" id="d2" placeholder="วว/ดด/ปปปป" inputmode="numeric" onchange="render()"></div>
+      <div class="grp" id="gYear"><select id="y1" onchange="render()"></select></div>
+      <div class="sep"></div>
+      <div class="grp"><span class="lbl">แสดงตาม</span>
+        <select id="groupBy" onchange="$('sortSel').value = this.value==='month' ? 'key' : 'net'; render()">
+          <option value="cust">ลูกค้า</option>
+          <option value="month">เดือน</option>
+          <option value="emp">พนักงานขาย</option>
+        </select>
+      </div>
+      <div class="sep"></div>
+      <div class="grp quick">
+        <button onclick="quick('thisM')">เดือนนี้</button>
+        <button onclick="quick('lastM')">เดือนที่แล้ว</button>
+        <button onclick="quick('ytd')">ต้นปีถึงวันนี้</button>
+        <button onclick="quick('lastY')">ปีที่แล้ว</button>
+      </div>
+    </div>
+
+    <div class="paper" id="report">
+      <div class="rhead">
+        <div>
+          <div class="co" id="rCo"></div>
+          <div class="tt" id="rTitle"></div>
+          <span class="note">* ยอดขายก่อน VAT จากใบส่งของขายเชื่อ (ไม่รวมใบที่ยกเลิก และใบลด/เพิ่มหนี้)</span>
+        </div>
+        <div class="meta"><div class="period" id="rPeriod"></div><div id="rDays"></div></div>
+      </div>
+      <div class="kpis" id="kpis"></div>
+      <div class="tools">
+        <span>เรียงตาม</span>
+        <select id="sortSel" onchange="render()">
+          <option value="net">ยอดขายมาก → น้อย</option>
+          <option value="key">รหัส / ลำดับเวลา</option>
+          <option value="name">ชื่อ ก-ฮ</option>
+        </select>
+      </div>
+      <div style="overflow-x:auto"><table><thead id="thead"></thead><tbody id="tbody"></tbody><tfoot id="tfoot"></tfoot></table></div>
+      <div class="check noprint" id="check"></div>
+      <div class="foot"><span id="printedAt"></span><span>V-pack · รายงานยอดขายประจำงวด</span></div>
+    </div>
+  </div>
+
+  <div class="loading hidden" id="loading">⏳ กำลังโหลดข้อมูล...</div>
+</div>
+
+<!-- หน้าต่างยืนยันอัปเดตข้อมูล (แอดมิน) -->
+<div class="modal-bg hidden" id="modalBg"><div class="modal" id="modal"></div></div>
+
+<script>
+// ===== ตั้งค่า: วาง URL ของ Apps Script Web app ตรงนี้ =====
+const API_URL = 'https://script.google.com/macros/s/AKfycbzt_rllU5Z1QTyLYUfsav87ZMUpjo4qq8VJlV3ZzjvC-WAwVXM9U917kMB45jHHIGFx7g/exec';
+// ==========================================================
+
+const TH_M = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const TH_MF = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const PIN_KEY = 'vpack_sales_pin';
+let PIN = '', ROLE = '', DATA = null, VIEW = null, PENDING = null;
+
+// ---------- helpers ----------
+const fmt  = n => (Math.abs(n)<0.005 ? '-' : n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2}));
+const fmt0 = n => n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+const r2 = n => Math.round((n + Number.EPSILON) * 100) / 100;
+const esc = s => String(s??'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pad = x => String(x).padStart(2,'0');
+const $ = id => document.getElementById(id);
+const isoToBE = iso => iso ? `${iso.slice(8,10)}/${iso.slice(5,7)}/${+iso.slice(0,4)+543}` : '';
+function beToISO(s){
+  const m = String(s).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/); if(!m) return null;
+  let y = +m[3]; if (y<100) y += 2500; if (y>2400) y -= 543;
+  return `${y}-${pad(m[2])}-${pad(m[1])}`;
+}
+const ymLabel = ym => `${TH_M[+ym.slice(5,7)-1]} ${+ym.slice(0,4)+543}`;
+const ymLabelF = ym => `${TH_MF[+ym.slice(5,7)-1]} ${+ym.slice(0,4)+543}`;
+const lastDay = ym => { const [y,m]=ym.split('-').map(Number); return `${ym}-${pad(new Date(y,m,0).getDate())}`; };
+const daysBetween = (a,b) => Math.round((new Date(b)-new Date(a))/86400000)+1;
+function shiftYear(iso,dy){ const y=+iso.slice(0,4)+dy; let s=`${y}${iso.slice(4)}`; if(s.slice(5)==='02-29' && !(y%4===0&&(y%100!==0||y%400===0))) s=`${y}-02-28`; return s; }
+function nowBE(){ const d=new Date(); return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()+543} ${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+const shortName = n => String(n).replace(/\s*\(สำนักงานใหญ่\).*$/,'').replace(/\s*จำกัด\s*$/,'').trim();
+const lsGet = k => { try { return localStorage.getItem(k); } catch(e){ return null; } };
+const lsSet = (k,v) => { try { v===null ? localStorage.removeItem(k) : localStorage.setItem(k,v); } catch(e){} };
+
+async function api(body){
+  if (API_URL.startsWith('PASTE')) throw new Error('ยังไม่ได้ใส่ API_URL ในไฟล์ index.html');
+  const res = await fetch(API_URL, {method:'POST', body: JSON.stringify(body)});   // text/plain: ไม่ติด CORS
+  const j = await res.json();
+  if (!j.ok) throw new Error(j.error || 'เกิดข้อผิดพลาด');
+  return j;
+}
+
+// ---------- login / load ----------
+async function login(saved){
+  const p = saved || $('pin').value.trim();
+  if (!p){ $('loginErr').textContent='กรุณาใส่รหัส'; return; }
+  $('loginErr').textContent=''; $('btnLogin').disabled=true;
+  $('loginBox').classList.add('hidden'); $('loading').classList.remove('hidden');
+  try{
+    const j = await api({action:'data', pin:p});
+    PIN = p; ROLE = j.role;
+    if (saved || $('remember').checked) lsSet(PIN_KEY, p);
+    applyData(j);
+    $('app').classList.remove('hidden');
+  }catch(err){
+    $('loginBox').classList.remove('hidden');
+    $('loginErr').textContent = err.message;
+    if (saved) lsSet(PIN_KEY, null);
+  }finally{ $('loading').classList.add('hidden'); $('btnLogin').disabled=false; }
+}
+function logout(){ lsSet(PIN_KEY, null); location.reload(); }
+
+function applyData(j){
+  const docs = j.rows.map(r=>({d:r[0], no:r[1], code:r[2], name:j.cust[r[2]]||r[2], emp:r[3], empn:j.emp[r[3]]||r[3],
+                               amt:r[4], vat:r[5], tot:r[6], due:r[7], po:r[8]}));
+  DATA = {company:j.meta.company, updatedAt:j.meta.updatedAt, docs,
+          minD: docs.length?docs[0].d:'', maxD: docs.length?docs[docs.length-1].d:''};
+  $('updInfo').textContent = j.meta.updatedAt ? `ข้อมูลล่าสุดถึง ${isoToBE(DATA.maxD)} · อัปเดตเมื่อ ${j.meta.updatedAt}` : '';
+  $('btnUpload').classList.toggle('hidden', ROLE!=='admin');
+  if (!docs.length){
+    $('report').innerHTML = `<div class="empty">ยังไม่มีข้อมูลในฐานข้อมูล ${ROLE==='admin'?'— กดปุ่ม “⬆ อัปเดตข้อมูล” แล้วเลือกไฟล์ PREFLI02.CSV':''}</div>`;
+    return;
+  }
+  setupFilter();
+  render();
+}
+
+// ---------- filter ----------
+function setupFilter(){
+  const keep = $('m1').value;
+  const months = [...new Set(DATA.docs.map(d=>d.d.slice(0,7)))].sort().reverse();
+  const years = [...new Set(months.map(m=>m.slice(0,4)))];
+  const opt = months.map(m=>`<option value="${m}">${ymLabel(m)}</option>`).join('');
+  $('m1').innerHTML = opt; $('m2').innerHTML = opt;
+  $('y1').innerHTML = years.map(y=>`<option value="${y}">ปี ${+y+543}</option>`).join('');
+  $('m1').value = months.includes(keep) ? keep : months[0]; $('m2').value = $('m1').value; $('y1').value = years[0];
+  if (!$('d1').value){ $('d1').value = isoToBE(months[0]+'-01'); $('d2').value = isoToBE(DATA.maxD); }
+  onMode(true);
+}
+function onMode(silent){
+  const m = $('mode').value;
+  $('gMonth').classList.toggle('hidden', !(m==='month'||m==='mrange'));
+  $('m2').classList.toggle('hidden', m!=='mrange'); $('mTo').classList.toggle('hidden', m!=='mrange');
+  $('gDate').classList.toggle('hidden', m!=='drange');
+  $('gYear').classList.toggle('hidden', m!=='year');
+  if (m==='mrange' && $('m2').value < $('m1').value) $('m2').value = $('m1').value;
+  if (!silent) render();
+}
+function getRange(){
+  const m = $('mode').value;
+  if (m==='month'){ const a=$('m1').value; return {from:a+'-01', to:lastDay(a), label:'ประจำเดือน '+ymLabelF(a)}; }
+  if (m==='mrange'){ let a=$('m1').value, b=$('m2').value; if (b<a) [a,b]=[b,a];
+    return {from:a+'-01', to:lastDay(b), label: a===b ? 'ประจำเดือน '+ymLabelF(a) : `เดือน ${ymLabel(a)} – ${ymLabel(b)}`}; }
+  if (m==='year'){ const y=$('y1').value; return {from:`${y}-01-01`, to:`${y}-12-31`, label:`ประจำปี ${+y+543}`}; }
+  if (m==='all') return {from:DATA.minD, to:DATA.maxD, label:''};
+  let a = beToISO($('d1').value), b = beToISO($('d2').value);
+  if (!a || !b) return null;
+  if (b<a) [a,b]=[b,a];
+  return {from:a, to:b, label:''};
+}
+function quick(k){
+  const t = new Date(), y=t.getFullYear(), mo=t.getMonth()+1;
+  const today = `${y}-${pad(mo)}-${pad(t.getDate())}`;
+  let a,b;
+  if (k==='thisM'){ a=`${y}-${pad(mo)}-01`; b=today; }
+  if (k==='lastM'){ const d=new Date(y,mo-2,1); const ym=`${d.getFullYear()}-${pad(d.getMonth()+1)}`; a=ym+'-01'; b=lastDay(ym); }
+  if (k==='ytd'){ a=`${y}-01-01`; b=today; }
+  if (k==='lastY'){ a=`${y-1}-01-01`; b=`${y-1}-12-31`; }
+  $('mode').value='drange'; $('d1').value=isoToBE(a); $('d2').value=isoToBE(b); onMode();
+}
+
+// ---------- build view ----------
+function buildView(){
+  const R = getRange();
+  if (!R) return {error:'กรอกวันที่ให้ครบในรูปแบบ วว/ดด/ปปปป (พ.ศ.) เช่น 01/11/2569'};
+  const docs = DATA.docs.filter(d=>d.d>=R.from && d.d<=R.to);
+  const gb = $('groupBy').value;
+  const map = new Map();
+  docs.forEach(d=>{
+    let k, name;
+    if (gb==='cust'){ k=d.code; name=d.name; }
+    else if (gb==='emp'){ k=d.emp||'-'; name=d.empn||'-'; }
+    else { k=d.d.slice(0,7); name=ymLabelF(k); }
+    let g = map.get(k);
+    if (!g){ g={key:k,name,net:0,vat:0,gross:0,bills:0,custs:new Set(),credit:0,lastD:''}; map.set(k,g); }
+    g.net+=d.amt; g.vat+=d.vat; g.gross+=d.tot; g.bills++; g.custs.add(d.code);
+    if (gb==='cust' && d.d>=g.lastD){ g.lastD=d.d; g.credit = d.due ? Math.max(0,daysBetween(d.d,d.due)-1) : 0; }
+  });
+  const rows = [...map.values()].map(g=>({...g, net:r2(g.net), vat:r2(g.vat), gross:r2(g.gross), ncust:g.custs.size}));
+  // m:false = ซ่อนบนมือถือ
+  let cols;
+  if (gb==='cust') cols = [
+    {h:'รหัสลูกค้า',k:'key',t:'code',w:18,m:false},{h:'ชื่อลูกค้า',k:'name',t:'name',w:50},{h:'เครดิต (วัน)',k:'credit',t:'int',w:10,nosum:true,m:false},{h:'จำนวนบิล',k:'bills',t:'int',w:9,m:false}];
+  else if (gb==='emp') cols = [
+    {h:'รหัสพนักงาน',k:'key',t:'code',w:14,m:false},{h:'ชื่อพนักงานขาย',k:'name',t:'name',w:34},{h:'จำนวนลูกค้า',k:'ncust',t:'int',w:11,nosum:true,m:false},{h:'จำนวนบิล',k:'bills',t:'int',w:9,m:false}];
+  else cols = [
+    {h:'เดือน',k:'name',t:'name',w:20},{h:'จำนวนลูกค้า',k:'ncust',t:'int',w:11,nosum:true,m:false},{h:'จำนวนบิล',k:'bills',t:'int',w:9,m:false}];
+  cols = cols.concat([{h:'ยอดขาย (ก่อน VAT)',k:'net',t:'numB',w:18},{h:'VAT 7%',k:'vat',t:'num',w:14,m:false},{h:'รวม VAT',k:'gross',t:'num',w:16,m:false}]);
+
+  let prev = null;
+  const effTo = R.to > DATA.maxD ? DATA.maxD : R.to;
+  const pf = shiftYear(R.from,-1), pt = shiftYear(effTo,-1);
+  if (pf >= DATA.minD.slice(0,7)+'-01' && effTo >= R.from) prev = {amt:r2(DATA.docs.filter(d=>d.d>=pf && d.d<=pt).reduce((s,d)=>s+d.amt,0)), from:pf, to:pt};
+
+  const tot = {net:r2(docs.reduce((s,d)=>s+d.amt,0)), vat:r2(docs.reduce((s,d)=>s+d.vat,0)), gross:r2(docs.reduce((s,d)=>s+d.tot,0))};
+  const groupName = {cust:'ลูกค้า',emp:'พนักงานขาย',month:'เดือน'}[gb];
+  return {gb, R, docs, rows, cols, tot, prev, ncust:new Set(docs.map(d=>d.code)).size,
+    title:`รายงานสรุปยอดขายตาม${groupName} (ประจำงวด)`,
+    period:`${R.label?R.label+' · ':''}วันที่ ${isoToBE(R.from)} ถึง ${isoToBE(R.to)}`,
+    note:'หมายเหตุ: ยอดขายก่อน VAT จากใบส่งของขายเชื่อ (ไม่รวมใบที่ยกเลิก และไม่รวมใบลด/เพิ่มหนี้) · VAT ตามที่ออกในบิล'};
+}
+function sortRows(v){
+  const s = $('sortSel').value, rows = v.rows;
+  if (s==='net') rows.sort((a,b)=>b.net-a.net);
+  else if (s==='name') rows.sort((a,b)=>String(a.name).localeCompare(String(b.name),'th'));
+  else rows.sort((a,b)=> a.key<b.key?-1:1);
+}
+
+// ---------- render ----------
+function render(){
+  if (!DATA || !DATA.docs.length) return;
+  VIEW = buildView();
+  const v = VIEW;
+  $('rCo').textContent = DATA.company || 'บริษัท วี แพค การพิมพ์และบรรจุภัณฑ์ จำกัด';
+  if (v.error){ $('tbody').innerHTML=`<tr><td class="empty">${v.error}</td></tr>`; $('thead').innerHTML=$('tfoot').innerHTML=$('kpis').innerHTML=''; return; }
+  sortRows(v);
+  $('rTitle').textContent = v.title;
+  $('rPeriod').textContent = v.period;
+  $('rDays').textContent = `รวม ${daysBetween(v.R.from,v.R.to)} วัน`;
+
+  const t = v.tot, n = v.rows.length;
+  const top = [...v.rows].sort((a,b)=>b.net-a.net)[0];
+  let k = `<div class="kpi"><div class="l">ยอดขาย (ก่อน VAT)</div><div class="v big">${fmt0(t.net)}</div><div class="s">${v.docs.length.toLocaleString()} บิล</div></div>
+    <div class="kpi"><div class="l">ภาษีมูลค่าเพิ่ม 7%</div><div class="v">${fmt0(t.vat)}</div><div class="s">ตามที่ออกในใบกำกับ</div></div>
+    <div class="kpi"><div class="l">ยอดรวม VAT</div><div class="v">${fmt0(t.gross)}</div><div class="s">&nbsp;</div></div>
+    <div class="kpi"><div class="l">จำนวนลูกค้า</div><div class="v">${v.ncust.toLocaleString()} ราย</div><div class="s">เฉลี่ย ${v.ncust?fmt0(r2(t.net/v.ncust)):'-'} / ราย</div></div>`;
+  if (v.prev){
+    const p = v.prev.amt, diff = r2(t.net - p), pct = p ? diff/p*100 : 0;
+    k += `<div class="kpi"><div class="l">เทียบช่วงเดียวกันปีก่อน</div><div class="v ${diff>=0?'up':'down'}">${diff>=0?'▲':'▼'} ${p?Math.abs(pct).toFixed(1)+'%':'-'}</div><div class="s">${isoToBE(v.prev.from).slice(0,5)}–${isoToBE(v.prev.to)} : ${fmt0(p)}</div></div>`;
+  } else k += `<div class="kpi"><div class="l">เทียบช่วงเดียวกันปีก่อน</div><div class="v muted">-</div><div class="s">ไม่มีข้อมูลปีก่อน</div></div>`;
+  if (top) k += `<div class="kpi"><div class="l">${v.gb==='month'?'เดือนยอดสูงสุด':v.gb==='emp'?'พนักงานยอดสูงสุด':'ลูกค้ายอดสูงสุด'}</div><div class="v" style="font-size:13px">${esc(shortName(top.name))}</div><div class="s">${fmt0(top.net)} (${t.net?(top.net/t.net*100).toFixed(1):0}%)</div></div>`;
+  $('kpis').innerHTML = k;
+
+  const cols = v.cols, hm = c => c.m===false ? ' hm' : '';
+  $('thead').innerHTML = '<tr><th>ลำดับ</th>' + cols.map(c=>`<th class="${hm(c)}">${c.h.replace(' (ก่อน VAT)','<br>(ก่อน VAT)')}</th>`).join('') + '<th>สัดส่วน</th></tr>';
+  if (!n){ $('tbody').innerHTML = `<tr><td colspan="${cols.length+2}" class="empty">ไม่มียอดขายในช่วงที่เลือก</td></tr>`; $('tfoot').innerHTML=''; }
+  else {
+    const maxNet = Math.max(...v.rows.map(r=>r.net), 1);
+    $('tbody').innerHTML = v.rows.map((r,i)=>'<tr><td class="c">'+(i+1)+'</td>'+cols.map(c=>{
+      const x = r[c.k], h = hm(c);
+      if (c.t==='code') return `<td class="code${h}">${esc(x)}</td>`;
+      if (c.t==='name') return `<td class="name${h}">${esc(x)}</td>`;
+      if (c.t==='int') return `<td class="c${h}">${x? Number(x).toLocaleString() : '<span class="muted">-</span>'}</td>`;
+      if (c.t==='numB') return `<td class="n${h}"><b>${fmt(x)}</b></td>`;
+      return `<td class="n${h}">${fmt(x)}</td>`;
+    }).join('')+`<td><div class="share"><div class="bar" style="width:${Math.max(2,r.net/maxNet*70)}px"></div><span>${t.net?(r.net/t.net*100).toFixed(1):'0.0'}%</span></div></td></tr>`).join('');
+    // แถวรวม: ช่อง "รวมทั้งสิ้น" ครอบลำดับ + คอลัมน์ข้อความ
+    const lead = cols.findIndex(c=>c.t!=='code'&&c.t!=='name');
+    const leadCols = cols.slice(0,lead);
+    let f = `<td colspan="${1+leadCols.filter(c=>c.m!==false).length}" class="c">รวม ${n.toLocaleString()} รายการ</td>` + leadCols.filter(c=>c.m===false).map(()=>'<td class="hm"></td>').join('');
+    cols.slice(lead).forEach(c=>{
+      const h = hm(c);
+      if (c.nosum) { f += `<td class="${h}"></td>`; return; }
+      const s = c.t==='int' ? v.rows.reduce((a,r)=>a+r[c.k],0).toLocaleString() : fmt0(r2(v.rows.reduce((a,r)=>a+r[c.k],0)));
+      f += `<td class="${c.t==='int'?'c':'n'}${h}">${s}</td>`;
+    });
+    $('tfoot').innerHTML = `<tr>${f}<td class="n">100.0%</td></tr>`;
+  }
+  $('check').textContent = `ข้อมูลในฐานข้อมูล: ${isoToBE(DATA.minD)} ถึง ${isoToBE(DATA.maxD)} · ${DATA.docs.length.toLocaleString()} บิล`;
+  $('printedAt').textContent = 'พิมพ์เมื่อ ' + nowBE();
+}
+
+// ---------- Excel ----------
+function exportExcel(){
+  if (!VIEW || VIEW.error) return;
+  if (typeof XLSX === 'undefined'){ alert('โหลดตัวสร้าง Excel ไม่ได้ ลองรีเฟรชหน้าอีกครั้งค่ะ'); return; }
+  const v = VIEW, F='Tahoma';
+  const bd = {style:'thin',color:{rgb:'BFC8D4'}}, border={top:bd,bottom:bd,left:bd,right:bd};
+  const ST = {
+    title:{font:{name:F,sz:14,bold:true,color:{rgb:'1F3A5F'}}}, sub:{font:{name:F,sz:12,bold:true}},
+    info:{font:{name:F,sz:10,color:{rgb:'444444'}}}, note:{font:{name:F,sz:10,italic:true,color:{rgb:'B54708'}}},
+    head:{font:{name:F,sz:10,bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'1F3A5F'}},alignment:{horizontal:'center',vertical:'center',wrapText:true},border},
+    txt:{font:{name:F,sz:10},border,alignment:{vertical:'center'}},
+  };
+  ST.ctr = {...ST.txt, alignment:{horizontal:'center',vertical:'center'}};
+  ST.int = {...ST.ctr, numFmt:'#,##0;-#,##0;"-"'};
+  ST.num = {...ST.txt, numFmt:'#,##0.00;-#,##0.00;"-"'};
+  ST.numB = {...ST.num, font:{name:F,sz:10,bold:true}};
+  ST.pct = {...ST.txt, numFmt:'0.0%', alignment:{horizontal:'right'}};
+  const tot = s => ({...s, font:{name:F,sz:10,bold:true}, fill:{fgColor:{rgb:'E3EAF3'}}, border:{...border, top:{style:'medium',color:{rgb:'1F3A5F'}}, bottom:{style:'double',color:{rgb:'1F3A5F'}}}});
+  const company = DATA.company || 'บริษัท วี แพค การพิมพ์และบรรจุภัณฑ์ จำกัด';
+  const L = c => XLSX.utils.encode_col(c);
+
+  function sheet(title, headers, dataRows, widths, totalCols, shareOf){
+    const ws = {}, put=(r,c,val,s,f)=>{ const cell = typeof val==='number'?{t:'n',v:val}:{t:'s',v:String(val??'')}; if(f) cell.f=f; if(s) cell.s=s; ws[XLSX.utils.encode_cell({r,c})]=cell; };
+    const nc = headers.length + (shareOf>=0?1:0);
+    put(0,0,company,ST.title); put(1,0,title,ST.sub); put(2,0,v.period,ST.info); put(3,0,v.note,ST.note);
+    const hr=5; headers.forEach((h,c)=>put(hr,c,h.h,ST.head)); if(shareOf>=0) put(hr,headers.length,'สัดส่วน %',ST.head);
+    const first=hr+2, last=hr+1+dataRows.length, totRow=last+1;
+    dataRows.forEach((row,i)=>{
+      const R=hr+1+i, x=R+1;
+      row.forEach((val,c)=>{ const h=headers[c]; if (h.f) put(R,c,val,ST.num,h.f(x)); else put(R,c,val, ST[h.t]||ST.txt); });
+      if (shareOf>=0) put(R,headers.length,0,ST.pct,`IF($${L(shareOf)}$${totRow}=0,0,${L(shareOf)}${x}/$${L(shareOf)}$${totRow})`);
+    });
+    const TR=totRow-1, firstSum=Math.min(...totalCols);
+    for (let c=0;c<nc;c++) put(TR,c,'',tot(ST.txt));
+    put(TR,0,`รวมทั้งสิ้น ${dataRows.length.toLocaleString()} รายการ`,tot(ST.ctr));
+    totalCols.forEach(c=>put(TR,c,0,tot(headers[c].t==='int'?ST.int:ST.num),`SUM(${L(c)}${first}:${L(c)}${last})`));
+    if (shareOf>=0) put(TR,headers.length,1,tot(ST.pct),`SUM(${L(headers.length)}${first}:${L(headers.length)}${last})`);
+    put(TR+2,0,'ออกรายงานเมื่อ '+nowBE()+'  ·  ที่มา: Autoflight ใบส่งของขายเชื่อ (PREFLI02)',ST.info);
+    ws['!ref'] = XLSX.utils.encode_range({s:{r:0,c:0},e:{r:TR+2,c:nc-1}});
+    ws['!merges'] = [0,1,2,3].map(r=>({s:{r,c:0},e:{r,c:nc-1}})).concat(firstSum>1?[{s:{r:TR,c:0},e:{r:TR,c:firstSum-1}}]:[]);
+    ws['!cols'] = widths.map(w=>({wch:w})).concat(shareOf>=0?[{wch:10}]:[]);
+    ws['!rows']=[]; ws['!rows'][hr]={hpt:30};
+    ws['!pageSetup']={orientation:'landscape',paperSize:9,fitToWidth:1,fitToHeight:0};
+    return ws;
+  }
+  const cols = v.cols;
+  const H = [{h:'ลำดับ',t:'ctr'}].concat(cols.map(c=>({h:c.h, t: c.t==='code'||c.t==='name' ? 'txt' : c.t})));
+  const netIdx = 1+cols.findIndex(c=>c.k==='net'), vatIdx = 1+cols.findIndex(c=>c.k==='vat'), grIdx = 1+cols.findIndex(c=>c.k==='gross');
+  H[grIdx] = {h:H[grIdx].h, t:'num', f:x=>`${L(netIdx)}${x}+${L(vatIdx)}${x}`};
+  const rows1 = v.rows.map((r,i)=>[i+1].concat(cols.map(c=>{ const x=r[c.k]; return (c.t==='code'||c.t==='name')? String(x??'') : (x||0); })));
+  const sumCols = cols.map((c,i)=>(!c.nosum && c.t!=='code' && c.t!=='name') ? i+1 : -1).filter(i=>i>0);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, sheet(v.title, H, rows1, [6].concat(cols.map(c=>c.w)), sumCols, netIdx), 'สรุปยอดขาย');
+  if (v.docs.length){
+    const H2 = [{h:'ลำดับ',t:'ctr'},{h:'วันที่',t:'ctr'},{h:'เลขที่',t:'txt'},{h:'รหัสลูกค้า',t:'txt'},{h:'ชื่อลูกค้า',t:'txt'},{h:'พนักงานขาย',t:'txt'},{h:'เลขที่ PO ลูกค้า',t:'txt'},{h:'ยอดขาย (ก่อน VAT)',t:'numB'},{h:'VAT 7%',t:'num'},{h:'รวม VAT',t:'num'},{h:'ครบกำหนด',t:'ctr'}];
+    const rows2 = v.docs.map((d,i)=>[i+1,isoToBE(d.d),d.no,d.code,d.name,d.empn,d.po,d.amt,d.vat,d.tot,isoToBE(d.due)]);
+    XLSX.utils.book_append_sheet(wb, sheet('รายการใบส่งของขายเชื่อ', H2, rows2, [6,11,11,18,45,22,16,16,13,15,11], [7,8,9], -1), 'รายการบิล');
+  }
+  XLSX.writeFile(wb, `ยอดขาย_${isoToBE(v.R.from).replace(/\//g,'-')}_ถึง_${isoToBE(v.R.to).replace(/\//g,'-')}.xlsx`);
+}
+
+// ================= แอดมิน: อัปเดตข้อมูลจาก PREFLI02.CSV =================
+function parseCSVLine(line){
+  const out=[]; let cur='', q=false;
+  for (let i=0;i<line.length;i++){
+    const ch=line[i];
+    if (q){ if (ch==='"'){ if(line[i+1]==='"'){cur+='"';i++;} else q=false; } else cur+=ch; }
+    else { if (ch==='"') q=true; else if (ch===','){ out.push(cur); cur=''; } else cur+=ch; }
+  }
+  out.push(cur); return out;
+}
+function decode(buf){
+  const u8 = new Uint8Array(buf);
+  try { const t = new TextDecoder('utf-8',{fatal:true}).decode(u8); if (/[฀-๿]/.test(t)) return t; } catch(e){}
+  return new TextDecoder('windows-874').decode(u8);
+}
+function parsePREFLI(text){
+  const nl = text.indexOf('\n');
+  const head = parseCSVLine(text.slice(0,nl).replace(/\r$/,'')).map(h=>h.trim().toLowerCase());
+  if (!head.includes('sdamtbfvat') || !head.includes('coor')) throw new Error('ไฟล์นี้ไม่ใช่ PREFLI02 (รายงานใบส่งของขายเชื่อ)');
+  const ix = k => head.indexOf(k);
+  const I = {date:ix('date'),no:ix('no'),stat:ix('stat'),coor:ix('coor'),name:ix('name'),emp:ix('qcempl'),empn:ix('qnempl'),
+             amt:ix('sdamtbfvat'),vat:ix('stdvat'),tot:ix('stdtotamt'),due:ix('duedate'),refto:ix('refto'),lv:ix('subhdlevel')};
+  const res = {company:'', from:null, to:null, docs:[], cancelled:0};
+  const lines = text.split(/\r?\n/), reDate = /^(\d{2})\/(\d{2})\/(\d{4}),/;
+  for (let i=1;i<lines.length;i++){
+    const l = lines[i]; if (!l) continue;
+    if (!reDate.test(l)){
+      if (!res.docs.length && (l.includes('บริษัท') || l.includes('ตั้งแต่'))){
+        const c=parseCSVLine(l), msg=(c[c.length-1]||'').replace(/\s+/g,' ').trim();
+        if (/บริษัท/.test(msg) && !res.company) res.company = msg;
+        const dm = msg.match(/ตั้งแต่(?:วันที่)?\s*([\d\/]+)\s*ถึง\s*([\d\/]+)/);
+        if (dm){ res.from = beToISO(dm[1]); res.to = beToISO(dm[2]); }
+      }
+      continue;
+    }
+    const c = parseCSVLine(l);
+    if (c[I.lv] !== '1') continue;
+    if ((c[I.stat]||'').trim()==='C'){ res.cancelled++; continue; }
+    const dm = c[I.date].match(/(\d{2})\/(\d{2})\/(\d{4})/), du = (c[I.due]||'').match(/(\d{2})\/(\d{2})\/(\d{4})/);
+    res.docs.push([`${dm[3]}-${dm[2]}-${dm[1]}`, c[I.no].trim(), c[I.coor].trim(), c[I.name].trim(), c[I.emp].trim(),
+      c[I.empn].replace(/\s+/g,' ').trim(), parseFloat(c[I.amt])||0, parseFloat(c[I.vat])||0, parseFloat(c[I.tot])||0,
+      du ? `${du[3]}-${du[2]}-${du[1]}` : '', (c[I.refto]||'').trim()]);
+  }
+  if (!res.docs.length) throw new Error('ไม่พบใบส่งของในไฟล์');
+  const ds = res.docs.map(d=>d[0]).sort();
+  res.headerRange = !!(res.from && res.to);
+  if (!res.from) res.from = ds[0];
+  if (!res.to) res.to = ds[ds.length-1];
+  return res;
+}
+$('file').onchange = e => {
+  const f = e.target.files[0]; $('file').value=''; if (!f) return;
+  const rd = new FileReader();
+  rd.onload = ev => {
+    try { PENDING = parsePREFLI(decode(ev.target.result)); PENDING.fileName = f.name; showConfirm(); }
+    catch(err){ alert('อ่านไฟล์ไม่ได้: ' + err.message); }
+  };
+  rd.readAsArrayBuffer(f);
+};
+function showConfirm(){
+  const P = PENDING;
+  const newSum = r2(P.docs.reduce((s,d)=>s+d[6],0));
+  const old = (DATA ? DATA.docs : []).filter(d=>d.d>=P.from && d.d<=P.to);
+  const oldSum = r2(old.reduce((s,d)=>s+d.amt,0));
+  let warn = '';
+  if (!P.headerRange) warn += '<div class="warn">⚠ หาช่วงวันที่ในหัวรายงานไม่เจอ — จะใช้ช่วงจากบิลแรกถึงบิลสุดท้ายในไฟล์แทน</div>';
+  if (old.length && P.docs.length < old.length*0.9) warn += `<div class="warn">⚠ ไฟล์ใหม่มีบิล <b>น้อยกว่า</b> ข้อมูลเดิมในช่วงเดียวกันมาก (${P.docs.length} vs ${old.length}) — ตอน export เลือกลูกค้า “ทั้งหมด” หรือเปล่า? ตรวจให้แน่ใจก่อนกดยืนยันนะคะ</div>`;
+  $('modal').innerHTML = `
+    <h3>⬆ ยืนยันอัปเดตข้อมูล</h3>
+    <div>ไฟล์: <b>${esc(P.fileName)}</b></div>
+    <div>ช่วงวันที่ในไฟล์: <b>${isoToBE(P.from)} ถึง ${isoToBE(P.to)}</b></div>
+    <table style="margin-top:8px">
+      <tr><th></th><th>จำนวนบิล</th><th>ยอดก่อน VAT</th></tr>
+      <tr><td>ข้อมูลเดิมในช่วงนี้ (จะถูกแทนที่)</td><td class="n">${old.length.toLocaleString()}</td><td class="n">${fmt0(oldSum)}</td></tr>
+      <tr><td><b>ข้อมูลใหม่จากไฟล์</b></td><td class="n"><b>${P.docs.length.toLocaleString()}</b></td><td class="n"><b>${fmt0(newSum)}</b></td></tr>
+    </table>
+    <div class="info">ไม่นับใบที่ยกเลิก ${P.cancelled} ใบ · ข้อมูลนอกช่วงวันที่นี้จะไม่ถูกแตะต้อง</div>
+    ${warn}
+    <div class="act"><button class="btn line" onclick="closeModal()">ยกเลิก</button><button class="btn green" id="btnConfirm" onclick="doUpload()">ยืนยันอัปเดต</button></div>`;
+  $('modalBg').classList.remove('hidden');
+}
+function closeModal(){ $('modalBg').classList.add('hidden'); PENDING=null; }
+async function doUpload(){
+  const P = PENDING; if (!P) return;
+  $('btnConfirm').disabled = true; $('btnConfirm').textContent = '⏳ กำลังบันทึก...';
+  try{
+    const r = await api({action:'upload', pin:PIN, from:P.from, to:P.to, docs:P.docs, company:P.company, fileName:P.fileName});
+    closeModal();
+    $('loading').classList.remove('hidden');
+    applyData(await api({action:'data', pin:PIN}));
+    alert(`✔ อัปเดตเรียบร้อย\nลบข้อมูลเดิม ${r.removed.toLocaleString()} บิล · เพิ่มใหม่ ${r.added.toLocaleString()} บิล\nรวมในฐานข้อมูล ${r.total.toLocaleString()} บิล`);
+  }catch(err){
+    alert('อัปเดตไม่สำเร็จ: ' + err.message);
+    $('btnConfirm').disabled = false; $('btnConfirm').textContent = 'ยืนยันอัปเดต';
+  }finally{ $('loading').classList.add('hidden'); }
+}
+
+// ---------- start ----------
+const saved = lsGet(PIN_KEY);
+if (saved) login(saved); else setTimeout(()=>$('pin').focus(), 50);
+</script>
+</body>
+</html>
