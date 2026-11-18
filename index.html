@@ -85,6 +85,47 @@
   .modal .info{margin-top:8px;font-size:12px;color:var(--mute)}
   .modal .act{margin-top:12px;display:flex;justify-content:flex-end;gap:8px}
 
+  /* แท็บ */
+  .tabs{display:flex;gap:4px;margin-top:10px}
+  .tabs button{font-family:Tahoma;font-size:13px;border:1px solid #c5ceda;border-bottom:none;background:#dfe5ec;color:var(--navy);padding:6px 14px;border-radius:6px 6px 0 0;cursor:pointer}
+  .tabs button.on{background:#fff;font-weight:bold}
+  .tabs + .filter{margin-top:0;border-top-left-radius:0}
+  .filter input.cust{width:240px;font-family:Tahoma;font-size:12px;padding:3px 4px;border:1px solid #b9c3cf;border-radius:3px}
+  .filter input.ccode{width:150px}
+  .filter .brk{flex-basis:100%;height:0}
+  /* เปรียบเทียบรายเดือน */
+  #tblCmp td.n{min-width:78px}
+  #tblCmp td.name{white-space:nowrap;max-width:230px;min-width:140px;overflow:hidden;text-overflow:ellipsis}
+  #tblCmp th.mo{min-width:78px}
+  .spark{display:block}
+  body.wide .wrap{max-width:1800px}
+  td.tot{background:#eef3f9!important;font-weight:bold}
+  /* dashboard */
+  .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .dcard{border:1px solid var(--line);border-radius:4px;padding:8px 10px;background:#fff;min-width:0}
+  .dcard.full{grid-column:1 / -1}
+  .dcard h4{margin:0 0 6px;font-size:13px;color:var(--navy)}
+  .dcard .sub{font-weight:normal;color:var(--mute);font-size:11px}
+  .legend{display:flex;gap:14px;font-size:11px;color:var(--mute);margin-bottom:2px}
+  .legend i{display:inline-block;width:12px;height:8px;border-radius:2px;margin-right:4px;vertical-align:middle}
+  .legend i.ln{height:2px;border-radius:0}
+  svg .ax{fill:#6b7685;font-size:10px;font-family:Tahoma}
+  svg .grid{stroke:#e5e9ef;stroke-width:1}
+  svg .hit{fill:transparent;cursor:default}
+  svg .hit:hover{fill:rgba(31,58,95,.07)}
+  .hb{display:grid;grid-template-columns:minmax(90px,38%) 1fr auto;align-items:center;gap:6px;padding:2px 0;font-size:12px}
+  .hb .hn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hb .hbar{height:10px;background:#eef1f5;border-radius:2px;overflow:hidden}
+  .hb .hbar i{display:block;height:100%;background:#2a78d6;border-radius:0 4px 4px 0}
+  .hb .hv{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;color:#33404f}
+  .hb.other .hbar i{background:#9aa5b4}
+  .mtab{width:100%;margin-top:6px;font-size:12px}
+  .mtab td,.mtab th{padding:2px 6px}
+  #tip{position:fixed;z-index:60;background:#1e2733;color:#fff;font-size:12px;padding:6px 8px;border-radius:4px;pointer-events:none;line-height:1.5;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  #tip .sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
+  @media (max-width:720px){ .dgrid{grid-template-columns:1fr} .filter input.cust{width:100%} .tabs button{flex:1;padding:6px 4px;font-size:12px} }
+  @media print{ .tabs{display:none!important} .dcard{break-inside:avoid} }
+
   /* แถบตั้งค่าการพิมพ์ */
   .printbar{margin-top:10px;background:#fffbea;border:1px solid #f0d68a;border-radius:6px;padding:8px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:12px}
   .printbar select{font-family:Tahoma;font-size:12px;padding:3px 4px;border:1px solid #b9c3cf;border-radius:3px}
@@ -189,7 +230,13 @@
     </div>
     <input type="file" id="file" accept=".csv,.CSV" class="hidden">
 
+    <div class="tabs">
+      <button id="tab-sum" class="on" onclick="setTab('sum')">📋 สรุปยอดขาย</button>
+      <button id="tab-cmp" onclick="setTab('cmp')">📅 เปรียบเทียบรายเดือน</button>
+      <button id="tab-dash" onclick="setTab('dash')">📈 Dashboard</button>
+    </div>
     <div class="filter">
+      <span class="grp fSum">
       <div class="grp"><span class="lbl">ช่วงรายงาน</span>
         <select id="mode" onchange="onMode()">
           <option value="month">รายเดือน</option>
@@ -202,20 +249,38 @@
       <div class="grp" id="gMonth"><select id="m1" onchange="render()"></select><span id="mTo" class="lbl">ถึง</span><select id="m2" onchange="render()"></select></div>
       <div class="grp" id="gDate"><input class="d" id="d1" placeholder="วว/ดด/ปปปป" inputmode="numeric" maxlength="10" autocomplete="off"><span class="lbl">ถึง</span><input class="d" id="d2" placeholder="วว/ดด/ปปปป" inputmode="numeric" maxlength="10" autocomplete="off"></div>
       <div class="grp" id="gYear"><select id="y1" onchange="render()"></select></div>
-      <div class="sep"></div>
-      <div class="grp"><span class="lbl">แสดงตาม</span>
+      </span>
+      <div class="grp fCmp hidden"><span class="lbl">ถึงเดือน</span><select id="cmpEnd" onchange="render()"></select>
+        <span class="lbl">ย้อนหลัง</span>
+        <select id="cmpN" onchange="render()"><option value="3">3 เดือน</option><option value="6">6 เดือน</option><option value="12" selected>12 เดือน</option><option value="24">24 เดือน</option></select>
+      </div>
+      <div class="sep fGrp"></div>
+      <div class="grp fGrp"><span class="lbl">แสดงตาม</span>
         <select id="groupBy" onchange="$('sortSel').value = this.value==='month' ? 'key' : 'net'; render()">
           <option value="cust">ลูกค้า</option>
-          <option value="month">เดือน</option>
+          <option value="month" id="optGbMonth">เดือน</option>
           <option value="emp">พนักงานขาย</option>
         </select>
       </div>
-      <div class="sep"></div>
-      <div class="grp quick">
+      <div class="sep fSum"></div>
+      <div class="grp quick fSum">
         <button onclick="quick('thisM')">เดือนนี้</button>
         <button onclick="quick('lastM')">เดือนที่แล้ว</button>
         <button onclick="quick('ytd')">ต้นปีถึงวันนี้</button>
         <button onclick="quick('lastY')">ปีที่แล้ว</button>
+      </div>
+      <div class="brk"></div>
+      <div class="grp"><span class="lbl">ลูกค้า</span>
+        <select id="cMode" onchange="onCustMode()">
+          <option value="all">ทั้งหมด</option>
+          <option value="one">เลือก / ค้นหาลูกค้า</option>
+          <option value="range">ช่วงรหัสลูกค้า</option>
+        </select>
+        <input class="cust hidden" id="cOne" list="custList" placeholder="พิมพ์รหัสหรือชื่อลูกค้า แล้วเลือกจากรายการ" autocomplete="off">
+        <input class="cust ccode hidden" id="cA" list="custList" placeholder="ตั้งแต่รหัส" autocomplete="off">
+        <span class="lbl hidden" id="cTo">ถึง</span>
+        <input class="cust ccode hidden" id="cB" list="custList" placeholder="ถึงรหัส" autocomplete="off">
+        <datalist id="custList"></datalist>
       </div>
     </div>
 
@@ -229,7 +294,7 @@
         <div class="meta"><div class="period" id="rPeriod"></div><div id="rDays"></div></div>
       </div>
       <div class="kpis" id="kpis"></div>
-      <div class="tools">
+      <div class="tools" id="toolsBar">
         <span>เรียงตาม</span>
         <select id="sortSel" onchange="render()">
           <option value="net">ยอดขายมาก → น้อย</option>
@@ -237,7 +302,9 @@
           <option value="name">ชื่อ ก-ฮ</option>
         </select>
       </div>
-      <div style="overflow-x:auto"><table><thead id="thead"></thead><tbody id="tbody"></tbody><tfoot id="tfoot"></tfoot></table></div>
+      <div id="secSum" style="overflow-x:auto"><table><thead id="thead"></thead><tbody id="tbody"></tbody><tfoot id="tfoot"></tfoot></table></div>
+      <div id="secCmp" class="hidden" style="overflow-x:auto"><table id="tblCmp"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>
+      <div id="secDash" class="hidden"></div>
       <div class="check noprint" id="check"></div>
       <div class="foot"><span id="printedAt"></span><span>V-pack · รายงานยอดขายประจำงวด</span></div>
     </div>
@@ -247,6 +314,7 @@
 </div>
 
 <!-- หน้าต่างยืนยันอัปเดตข้อมูล (แอดมิน) -->
+<div id="tip" class="hidden"></div>
 <div class="modal-bg hidden" id="modalBg"><div class="modal" id="modal"></div></div>
 
 <script>
@@ -339,6 +407,8 @@ function setupFilter(){
   $('y1').innerHTML = years.map(y=>`<option value="${y}">ปี ${+y+543}</option>`).join('');
   $('m1').value = months.includes(keep) ? keep : months[0]; $('m2').value = $('m1').value; $('y1').value = years[0];
   if (!$('d1').value){ $('d1').value = isoToBE(months[0]+'-01'); $('d2').value = isoToBE(DATA.maxD); }
+  const keepE = $('cmpEnd').value; $('cmpEnd').innerHTML = opt; $('cmpEnd').value = months.includes(keepE) ? keepE : months[0];
+  setupCustList();
   onMode(true);
 }
 function onMode(silent){
@@ -373,11 +443,70 @@ function quick(k){
   $('mode').value='drange'; $('d1').value=isoToBE(a); $('d2').value=isoToBE(b); onMode();
 }
 
+// ---------- แท็บ ----------
+let TAB = 'sum';
+function setTab(t){
+  TAB = t;
+  document.body.classList.toggle('wide', t==='cmp');
+  ['sum','cmp','dash'].forEach(x=>$('tab-'+x).classList.toggle('on', x===t));
+  document.querySelectorAll('.fSum').forEach(e=>e.classList.toggle('hidden', t!=='sum'));
+  document.querySelectorAll('.fCmp').forEach(e=>e.classList.toggle('hidden', t==='sum'));
+  document.querySelectorAll('.fGrp').forEach(e=>e.classList.toggle('hidden', t==='dash'));
+  $('optGbMonth').disabled = (t==='cmp');
+  if (t==='cmp' && $('groupBy').value==='month'){ $('groupBy').value='cust'; $('sortSel').value='net'; }
+  render();
+}
+
+// ---------- ตัวกรองลูกค้า ----------
+function setupCustList(){
+  const m = new Map(); DATA.docs.forEach(d=>m.set(d.code, d.name));
+  DATA.custs = [...m.entries()].sort((a,b)=>a[0]<b[0]?-1:1);
+  $('custList').innerHTML = DATA.custs.map(([c,n])=>`<option value="${esc(c)} — ${esc(n)}">`).join('');
+}
+function onCustMode(){
+  const m = $('cMode').value;
+  $('cOne').classList.toggle('hidden', m!=='one');
+  ['cA','cB','cTo'].forEach(id=>$(id).classList.toggle('hidden', m!=='range'));
+  if (m==='one') $('cOne').focus(); if (m==='range') $('cA').focus();
+  render();
+}
+const codeOf = v => String(v||'').split(' — ')[0].trim();
+function getCust(){
+  const m = $('cMode').value;
+  if (m==='one'){
+    const v = codeOf($('cOne').value); if (!v) return {mode:'all', label:''};
+    const hit = DATA.custs.find(([c])=>c===v);
+    if (hit) return {mode:'one', code:v, label:`ลูกค้า: ${v} ${hit[1]}`};
+    const q = v.toLowerCase();
+    return {mode:'search', q, label:`ลูกค้าที่มีคำว่า “${v}”`};
+  }
+  if (m==='range'){
+    const a = codeOf($('cA').value), b = codeOf($('cB').value);
+    if (!a && !b) return {mode:'all', label:''};
+    return {mode:'range', a, b, label:`รหัสลูกค้า ${a||'(แรก)'} ถึง ${b||'(สุดท้าย)'}`};
+  }
+  return {mode:'all', label:''};
+}
+function applyCust(docs){
+  const c = getCust();
+  if (c.mode==='one') return docs.filter(d=>d.code===c.code);
+  if (c.mode==='search') return docs.filter(d=>d.code.toLowerCase().includes(c.q) || d.name.toLowerCase().includes(c.q));
+  if (c.mode==='range') return docs.filter(d=>(!c.a || d.code>=c.a) && (!c.b || d.code<=c.b));
+  return docs;
+}
+['cOne','cA','cB'].forEach(id=>{
+  const el = $(id);
+  el.addEventListener('change', ()=>render());
+  el.addEventListener('input', ()=>{ if (el.value.includes(' — ') || el.value==='') render(); });
+  el.addEventListener('keydown', e=>{ if (e.key==='Enter') render(); });
+});
+
 // ---------- build view ----------
 function buildView(){
   const R = getRange();
   if (!R) return {error:'กรอกวันที่ให้ครบในรูปแบบ วว/ดด/ปปปป (พ.ศ.) เช่น 01/11/2569'};
-  const docs = DATA.docs.filter(d=>d.d>=R.from && d.d<=R.to);
+  const CD = applyCust(DATA.docs), cust = getCust();
+  const docs = CD.filter(d=>d.d>=R.from && d.d<=R.to);
   const gb = $('groupBy').value;
   const map = new Map();
   docs.forEach(d=>{
@@ -405,13 +534,13 @@ function buildView(){
   let prev = null;
   const effTo = R.to > DATA.maxD ? DATA.maxD : R.to;
   const pf = shiftYear(R.from,-1), pt = shiftYear(effTo,-1);
-  if (pf >= DATA.minD.slice(0,7)+'-01' && effTo >= R.from) prev = {amt:r2(DATA.docs.filter(d=>d.d>=pf && d.d<=pt).reduce((s,d)=>s+d.amt,0)), from:pf, to:pt};
+  if (pf >= DATA.minD.slice(0,7)+'-01' && effTo >= R.from) prev = {amt:r2(CD.filter(d=>d.d>=pf && d.d<=pt).reduce((s,d)=>s+d.amt,0)), from:pf, to:pt};
 
   const tot = {sale:r2(docs.filter(d=>d.sale).reduce((s,d)=>s+d.amt,0)), adj:r2(docs.filter(d=>!d.sale).reduce((s,d)=>s+d.amt,0)), bills:docs.filter(d=>d.sale).length, net:r2(docs.reduce((s,d)=>s+d.amt,0)), vat:r2(docs.reduce((s,d)=>s+d.vat,0)), gross:r2(docs.reduce((s,d)=>s+d.tot,0))};
   const groupName = {cust:'ลูกค้า',emp:'พนักงานขาย',month:'เดือน'}[gb];
-  return {gb, R, docs, rows, cols, tot, prev, ncust:new Set(docs.map(d=>d.code)).size,
+  return {kind:'sum', gb, R, docs, rows, cols, tot, prev, ncust:new Set(docs.map(d=>d.code)).size,
     title:`รายงานสรุปยอดขายตาม${groupName} (ประจำงวด)`,
-    period:`${R.label?R.label+' · ':''}วันที่ ${isoToBE(R.from)} ถึง ${isoToBE(R.to)}`,
+    period:`${R.label?R.label+' · ':''}วันที่ ${isoToBE(R.from)} ถึง ${isoToBE(R.to)}${cust.label?' · '+cust.label:''}`,
     note:'หมายเหตุ: ยอดขายสุทธิก่อน VAT = ใบส่งของ + ใบลด/เพิ่มหนี้ (ไม่รวมใบที่ยกเลิก) · VAT ตามที่ออกในเอกสาร'};
 }
 function sortRows(v){
@@ -424,6 +553,19 @@ function sortRows(v){
 // ---------- render ----------
 function render(){
   if (!DATA || !DATA.docs.length) return;
+  hideTip();
+  $('secSum').classList.toggle('hidden', TAB!=='sum');
+  $('secCmp').classList.toggle('hidden', TAB!=='cmp');
+  $('secDash').classList.toggle('hidden', TAB!=='dash');
+  $('toolsBar').classList.toggle('hidden', TAB==='dash');
+  $('rCo').textContent = DATA.company || 'บริษัท วี แพค การพิมพ์และบรรจุภัณฑ์ จำกัด';
+  $('check').textContent = `ข้อมูลในฐานข้อมูล: ${isoToBE(DATA.minD)} ถึง ${isoToBE(DATA.maxD)} · ${DATA.docs.length.toLocaleString()} เอกสาร`;
+  $('printedAt').textContent = 'พิมพ์เมื่อ ' + nowBE();
+  if (TAB==='cmp') return renderCompare();
+  if (TAB==='dash') return renderDash();
+  renderSummary();
+}
+function renderSummary(){
   VIEW = buildView();
   const v = VIEW;
   $('rCo').textContent = DATA.company || 'บริษัท วี แพค การพิมพ์และบรรจุภัณฑ์ จำกัด';
@@ -471,9 +613,170 @@ function render(){
     });
     $('tfoot').innerHTML = `<tr>${f}<td class="n">100.0%</td></tr>`;
   }
-  $('check').textContent = `ข้อมูลในฐานข้อมูล: ${isoToBE(DATA.minD)} ถึง ${isoToBE(DATA.maxD)} · ${DATA.docs.length.toLocaleString()} บิล`;
-  $('printedAt').textContent = 'พิมพ์เมื่อ ' + nowBE();
 }
+
+// ================= เปรียบเทียบรายเดือน =================
+function ymAdd(ym,k){ let [y,m]=ym.split('-').map(Number); m+=k; while(m<1){m+=12;y--;} while(m>12){m-=12;y++;} return `${y}-${pad(m)}`; }
+function monthsBack(end,n){ const out=[]; for(let i=n-1;i>=0;i--) out.push(ymAdd(end,-i)); return out; }
+const ymShort = ym => `${TH_M[+ym.slice(5,7)-1]} ${String(+ym.slice(0,4)+543).slice(2)}`;
+function buildCompare(){
+  const end = $('cmpEnd').value, n = +$('cmpN').value, months = monthsBack(end,n);
+  const from = months[0]+'-01', to = lastDay(end);
+  const gb = $('groupBy').value==='emp' ? 'emp' : 'cust', cust = getCust();
+  const docs = applyCust(DATA.docs).filter(d=>d.d>=from && d.d<=to);
+  const idx = Object.fromEntries(months.map((m,i)=>[m,i]));
+  const map = new Map();
+  docs.forEach(d=>{
+    const k = gb==='cust' ? d.code : (d.emp||'-');
+    let g = map.get(k);
+    if (!g){ g = {key:k, name: gb==='cust'?d.name:(d.empn||'-'), v:months.map(()=>0)}; map.set(k,g); }
+    g.v[idx[d.d.slice(0,7)]] += d.amt;
+    if (gb==='cust') g.name = d.name;
+  });
+  const rows = [...map.values()].map(g=>{
+    g.v = g.v.map(r2); g.net = r2(g.v.reduce((a,b)=>a+b,0)); g.avg = r2(g.net/n); g.active = g.v.filter(x=>Math.abs(x)>0.005).length;
+    const a = g.v[n-1], b = g.v[n-2]; g.chg = (n>1 && Math.abs(b)>0.005) ? (a-b)/Math.abs(b) : null;
+    return g;
+  });
+  const colTot = months.map((m,i)=>r2(rows.reduce((s,r)=>s+r.v[i],0)));
+  const total = r2(colTot.reduce((a,b)=>a+b,0));
+  return {kind:'cmp', gb, months, from, to, rows, colTot, total, n, docs,
+    title:`รายงานเปรียบเทียบยอดขายรายเดือน ตาม${gb==='cust'?'ลูกค้า':'พนักงานขาย'} (ย้อนหลัง ${n} เดือน)`,
+    period:`เดือน ${ymLabel(months[0])} – ${ymLabel(end)}${cust.label?' · '+cust.label:''}`,
+    note:'หมายเหตุ: ยอดขายสุทธิก่อน VAT (รวมใบลด/เพิ่มหนี้ ไม่รวมใบที่ยกเลิก)'};
+}
+function sparkSVG(vals){
+  const w=80,h=18,mx=Math.max(...vals,0),mn=Math.min(...vals,0),rg=(mx-mn)||1;
+  const pts = vals.map((v,i)=>`${(vals.length>1?i/(vals.length-1):0.5)*(w-4)+2},${h-2-(v-mn)/rg*(h-4)}`).join(' ');
+  const last = pts.split(' ').pop().split(',');
+  return `<svg class="spark" width="${w}" height="${h}"><polyline points="${pts}" fill="none" stroke="#2a78d6" stroke-width="1.5" stroke-linejoin="round"/><circle cx="${last[0]}" cy="${last[1]}" r="2" fill="#2a78d6"/></svg>`;
+}
+function renderCompare(){
+  VIEW = buildCompare(); const v = VIEW;
+  const s = $('sortSel').value;
+  if (s==='net') v.rows.sort((a,b)=>b.net-a.net); else if (s==='name') v.rows.sort((a,b)=>String(a.name).localeCompare(String(b.name),'th')); else v.rows.sort((a,b)=>a.key<b.key?-1:1);
+  $('rTitle').textContent = v.title; $('rPeriod').textContent = v.period; $('rDays').textContent = `${v.n} เดือน`;
+  const best = v.colTot.indexOf(Math.max(...v.colTot));
+  const allM = v.rows.filter(r=>r.active===v.n).length;
+  $('kpis').innerHTML = `
+    <div class="kpi"><div class="l">ยอดขายรวม ${v.n} เดือน</div><div class="v big">${fmt0(v.total)}</div><div class="s">เฉลี่ย ${fmt0(r2(v.total/v.n))} / เดือน</div></div>
+    <div class="kpi"><div class="l">เดือนยอดสูงสุด</div><div class="v">${v.total?ymLabel(v.months[best]):'-'}</div><div class="s">${fmt0(v.colTot[best]||0)}</div></div>
+    <div class="kpi"><div class="l">${v.gb==='cust'?'ลูกค้าที่มียอด':'พนักงานที่มียอด'}</div><div class="v">${v.rows.length.toLocaleString()} ${v.gb==='cust'?'ราย':'คน'}</div><div class="s">มียอดทุกเดือน ${allM.toLocaleString()}</div></div>
+    <div class="kpi"><div class="l">${ymShort(v.months[v.n-1])} เทียบ ${v.n>1?ymShort(v.months[v.n-2]):'-'}${(DATA.maxD<v.to&&DATA.maxD>=v.months[v.n-1]+'-01')?` <span title="เดือนล่าสุดยังไม่ครบเดือน">(ข้อมูลถึง ${isoToBE(DATA.maxD).slice(0,5)})</span>`:''}</div>${(()=>{const a=v.colTot[v.n-1],b=v.colTot[v.n-2]; if(v.n<2||!b) return '<div class="v muted">-</div><div class="s">&nbsp;</div>'; const p=(a-b)/Math.abs(b)*100; return `<div class="v ${p>=0?'up':'down'}">${p>=0?'▲':'▼'} ${Math.abs(p).toFixed(1)}%</div><div class="s">${fmt0(a)} vs ${fmt0(b)}</div>`;})()}</div>`;
+  const T = $('tblCmp');
+  T.tHead.innerHTML = `<tr><th>ลำดับ</th><th class="hm">${v.gb==='cust'?'รหัสลูกค้า':'รหัส'}</th><th>${v.gb==='cust'?'ชื่อลูกค้า':'พนักงานขาย'}</th>`
+    + v.months.map(m=>`<th class="mo">${ymShort(m)}</th>`).join('') + `<th>รวม</th><th class="hm">เฉลี่ย/เดือน</th><th class="hm">แนวโน้ม</th><th>${ymShort(v.months[v.n-1])} vs ${v.n>1?ymShort(v.months[v.n-2]):'-'}${(DATA.maxD<v.to&&DATA.maxD>=v.months[v.n-1]+'-01')?`<br><small>(ข้อมูลถึง ${isoToBE(DATA.maxD).slice(0,5)})</small>`:''}</th></tr>`;
+  if (!v.rows.length){ T.tBodies[0].innerHTML = `<tr><td colspan="${v.n+7}" class="empty">ไม่มียอดขายในช่วงที่เลือก</td></tr>`; T.tFoot.innerHTML=''; return; }
+  const chg = c => c===null ? '<span class="muted">-</span>' : `<span class="${c>=0?'up':'down'}">${c>=0?'▲':'▼'} ${Math.abs(c*100).toFixed(1)}%</span>`;
+  T.tBodies[0].innerHTML = v.rows.map((r,i)=>`<tr><td class="c">${i+1}</td><td class="code hm">${esc(r.key)}</td><td class="name" title="${esc(r.name)}">${esc(v.gb==='cust'?shortName(r.name):r.name)}</td>`
+    + r.v.map(x=>`<td class="n">${fmt(x)}</td>`).join('')
+    + `<td class="n tot">${fmt(r.net)}</td><td class="n hm">${fmt(r.avg)}</td><td class="hm">${sparkSVG(r.v)}</td><td class="n">${chg(r.chg)}</td></tr>`).join('');
+  const lt = v.colTot[v.n-1], pt = v.colTot[v.n-2];
+  T.tFoot.innerHTML = `<tr><td colspan="2" class="c">รวม ${v.rows.length.toLocaleString()} รายการ</td><td class="hm"></td>`
+    + v.colTot.map(x=>`<td class="n">${fmt0(x)}</td>`).join('')
+    + `<td class="n">${fmt0(v.total)}</td><td class="n hm">${fmt0(r2(v.total/v.n))}</td><td class="hm">${sparkSVG(v.colTot)}</td><td class="n">${chg(v.n>1&&pt?(lt-pt)/Math.abs(pt):null)}</td></tr>`;
+}
+
+// ================= Dashboard =================
+const fmtI = n => Math.round(n).toLocaleString('th-TH');
+function compactTH(v){ const a=Math.abs(v); if (a>=1e6) return (v/1e6).toFixed(a>=1e7?0:1).replace(/\.0$/,'')+' ล้าน'; if (a>=1e3) return Math.round(v/1e3)+'K'; return String(Math.round(v)); }
+function niceStep(raw){ const p=Math.pow(10,Math.floor(Math.log10(raw||1))); const f=raw/p; return (f<=1?1:f<=2?2:f<=2.5?2.5:f<=5?5:10)*p; }
+const tip = $('tip');
+function showTip(e,html){ tip.innerHTML=html; tip.classList.remove('hidden'); const x=e.clientX+14, y=e.clientY+14; tip.style.left=Math.max(4,Math.min(x, innerWidth-tip.offsetWidth-8))+'px'; tip.style.top=Math.min(y, innerHeight-tip.offsetHeight-8)+'px'; }
+function hideTip(){ tip && tip.classList.add('hidden'); }
+function buildDash(){
+  const end = $('cmpEnd').value, n = Math.max(+$('cmpN').value, 3), months = monthsBack(end,n), cust = getCust();
+  const CD = applyCust(DATA.docs), byM = {};
+  CD.forEach(d=>{ const m=d.d.slice(0,7); byM[m]=(byM[m]||0)+d.amt; });
+  const firstM = DATA.minD.slice(0,7);
+  const cur = months.map(m=>r2(byM[m]||0));
+  const prev = months.map(m=>{ const p=ymAdd(m,-12); return p<firstM ? null : r2(byM[p]||0); });
+  const from = months[0]+'-01', to = lastDay(end);
+  const docs = CD.filter(d=>d.d>=from && d.d<=to);
+  const agg = (keyF,nameF)=>{ const m=new Map(); docs.forEach(d=>{ const k=keyF(d); const g=m.get(k)||{key:k,name:nameF(d),net:0}; g.net+=d.amt; g.name=nameF(d); m.set(k,g); }); return [...m.values()].map(g=>({...g,net:r2(g.net)})).sort((a,b)=>b.net-a.net); };
+  const custs = agg(d=>d.code, d=>d.name), emps = agg(d=>d.emp||'-', d=>d.empn||'-');
+  const total = r2(cur.reduce((a,b)=>a+b,0));
+  // ถ้าเดือนสุดท้ายยังไม่จบ (ข้อมูลถึงกลางเดือน) ให้เทียบถึง "วันเดียวกัน" ของเดือนก่อน/ปีก่อน
+  const sumR = (a,b)=>r2(CD.filter(d=>d.d>=a && d.d<=b).reduce((s,d)=>s+d.amt,0));
+  const partial = DATA.maxD < to && DATA.maxD >= end+'-01';
+  const effEnd = partial ? DATA.maxD : to, day = effEnd.slice(8,10);
+  const clampDay = ym => { const ld = lastDay(ym); return `${ym}-${day}` > ld ? ld : `${ym}-${day}`; };
+  const pm = ymAdd(end,-1), py = ymAdd(end,-12);
+  const lastCur = sumR(end+'-01', effEnd);
+  const lastPm = sumR(pm+'-01', partial ? clampDay(pm) : lastDay(pm));
+  const lastPy = py < firstM ? null : sumR(py+'-01', partial ? clampDay(py) : lastDay(py));
+  const prevTotal = ymAdd(months[0],-12) < firstM ? null : sumR(shiftYear(from,-1), shiftYear(effEnd,-1));
+  return {kind:'dash', months, cur, prev, custs, emps, total, prevTotal, n, docs, from, to, partial, effEnd, lastCur, lastPm, lastPy, pm, py,
+    title:`Dashboard ยอดขาย (ย้อนหลัง ${n} เดือน)`,
+    period:`เดือน ${ymLabel(months[0])} – ${ymLabel(end)}${cust.label?' · '+cust.label:''}`,
+    note:'หมายเหตุ: ยอดขายสุทธิก่อน VAT (รวมใบลด/เพิ่มหนี้ ไม่รวมใบที่ยกเลิก)'};
+}
+function monthlyChart(v){
+  const box = $('chMonthly'); const W = Math.max(300, box.clientWidth || 900), H = 230;
+  const ml=56, mr=8, mt=10, mb=26, iw=W-ml-mr, ih=H-mt-mb, n=v.months.length;
+  const vals = v.cur.concat(v.prev.filter(x=>x!==null));
+  const mx = Math.max(...vals, 1), mn = Math.min(0, ...vals);
+  const step = niceStep((mx-mn)/4), top = Math.ceil(mx/step)*step, bot = Math.floor(mn/step)*step;
+  const y = val => mt + ih - (val-bot)/(top-bot)*ih, bw = iw/n, barW = Math.min(36, bw*0.62);
+  let g = '';
+  for (let t=bot; t<=top+1e-6; t+=step) g += `<line class="grid" x1="${ml}" x2="${W-mr}" y1="${y(t)}" y2="${y(t)}"/><text class="ax" x="${ml-6}" y="${y(t)+3}" text-anchor="end">${compactTH(t)}</text>`;
+  const every = bw < 34 ? Math.ceil(34/bw) : 1;
+  v.months.forEach((m,i)=>{
+    const cx = ml + bw*i + bw/2, val = v.cur[i], y0 = y(0), y1 = y(val), h = Math.abs(y0-y1), r = Math.min(4, h, barW/2);
+    if (h>0.5){
+      // แท่งมุมโค้งเฉพาะปลายแท่ง ฐานตรง
+      g += val>=0 ? `<path d="M${cx-barW/2},${y0} V${y1+r} Q${cx-barW/2},${y1} ${cx-barW/2+r},${y1} H${cx+barW/2-r} Q${cx+barW/2},${y1} ${cx+barW/2},${y1+r} V${y0} Z" fill="#2a78d6"/>`
+                  : `<path d="M${cx-barW/2},${y0} V${y1-r} Q${cx-barW/2},${y1} ${cx-barW/2+r},${y1} H${cx+barW/2-r} Q${cx+barW/2},${y1} ${cx+barW/2},${y1-r} V${y0} Z" fill="#2a78d6"/>`;
+    }
+    if ((n-1-i)%every===0) g += `<text class="ax" x="${cx}" y="${H-8}" text-anchor="middle">${ymShort(m)}</text>`;
+  });
+  g += `<line x1="${ml}" x2="${W-mr}" y1="${y(0)}" y2="${y(0)}" stroke="#9aa5b4"/>`;
+  // เส้นปีก่อน
+  const pp = v.prev.map((p,i)=>p===null?null:[ml+bw*i+bw/2, y(p)]);
+  let path='', on=false; pp.forEach(pt=>{ if(!pt){on=false;return;} path += (on?'L':'M')+pt[0]+','+pt[1]+' '; on=true; });
+  if (path) g += `<path d="${path}" fill="none" stroke="#8a95a5" stroke-width="2" stroke-dasharray="5 3"/>` + pp.filter(Boolean).map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="3" fill="#fff" stroke="#8a95a5" stroke-width="2"/>`).join('');
+  v.months.forEach((m,i)=>{ g += `<rect class="hit" data-i="${i}" x="${ml+bw*i}" y="${mt}" width="${bw}" height="${ih}"/>`; });
+  box.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="กราฟยอดขายรายเดือน">${g}</svg>`;
+  box.querySelectorAll('.hit').forEach(r=>{
+    const i = +r.dataset.i, c = v.cur[i], p = v.prev[i];
+    const html = `<b>${ymLabelF(v.months[i])}</b><br><span class="sw" style="background:#2a78d6"></span>ยอดขาย ${fmt0(c)}`
+      + (p===null ? '' : `<br><span class="sw" style="background:#8a95a5"></span>ปีก่อน ${fmt0(p)}${p?` (${c>=p?'▲':'▼'} ${Math.abs((c-p)/Math.abs(p)*100).toFixed(1)}%)`:''}`);
+    r.addEventListener('mousemove', e=>showTip(e,html)); r.addEventListener('mouseleave', hideTip);
+    r.addEventListener('click', e=>showTip(e,html));
+  });
+}
+function hbars(list, total, topN){
+  const top = list.slice(0,topN), rest = list.slice(topN), other = r2(rest.reduce((s,r)=>s+r.net,0));
+  const rows = top.map(r=>({name:r.name, key:r.key, net:r.net})); if (rest.length) rows.push({name:`อื่นๆ (${rest.length} ราย)`, net:other, other:true});
+  const mx = Math.max(...rows.map(r=>r.net), 1);
+  return rows.map(r=>`<div class="hb${r.other?' other':''}" title="${esc(r.key?r.key+' ':'')}${esc(r.name)}: ${fmt0(r.net)}"><div class="hn">${esc(r.other?r.name:shortName(r.name))}</div><div class="hbar"><i style="width:${Math.max(0,r.net)/mx*100}%"></i></div><div class="hv">${fmtI(r.net)} · ${total?(r.net/total*100).toFixed(1):0}%</div></div>`).join('') || '<div class="empty">ไม่มีข้อมูล</div>';
+}
+function renderDash(){
+  VIEW = buildDash(); const v = VIEW, n = v.n;
+  $('rTitle').textContent = v.title; $('rPeriod').textContent = v.period; $('rDays').textContent = `${n} เดือน`;
+  const a = v.lastCur, b = v.lastPm, pl = v.lastPy;
+  const upto = v.partial ? ` <span title="ข้อมูลเดือนนี้ถึง ${isoToBE(v.effEnd)} จึงเทียบถึงวันเดียวกัน">(1–${+v.effEnd.slice(8,10)})</span>` : '';
+  const pctH = (x,y)=> (y===null||!y) ? '<div class="v muted">-</div>' : `<div class="v ${x>=y?'up':'down'}">${x>=y?'▲':'▼'} ${Math.abs((x-y)/Math.abs(y)*100).toFixed(1)}%</div>`;
+  $('kpis').innerHTML = `
+    <div class="kpi"><div class="l">ยอดขายรวม ${n} เดือน</div><div class="v big">${fmt0(v.total)}</div><div class="s">เฉลี่ย ${fmt0(r2(v.total/n))} / เดือน</div></div>
+    <div class="kpi"><div class="l">เทียบช่วงเดียวกันปีก่อน${v.partial?' *':''}</div>${pctH(v.total, v.prevTotal)}<div class="s">ปีก่อน ${v.prevTotal===null?'ไม่มีข้อมูล':fmt0(v.prevTotal)}</div></div>
+    <div class="kpi"><div class="l">${ymShort(v.months[n-1])}${upto} เทียบ ${ymShort(v.pm)}</div>${pctH(a,b)}<div class="s">${fmt0(a)} vs ${fmt0(b)}</div></div>
+    <div class="kpi"><div class="l">${ymShort(v.months[n-1])}${upto} เทียบ ${ymShort(v.py)}</div>${pctH(a,pl)}<div class="s">ปีก่อน ${pl===null?'-':fmt0(pl)}</div></div>
+    <div class="kpi"><div class="l">ลูกค้าที่มียอด</div><div class="v">${v.custs.length.toLocaleString()} ราย</div><div class="s">${v.docs.filter(d=>d.sale).length.toLocaleString()} บิล</div></div>`;
+  const rowsM = v.months.map((m,i)=>{ const c=v.cur[i], p=v.prev[i]; return `<tr><td>${ymLabel(m)}</td><td class="n">${fmt(c)}</td><td class="n">${p===null?'<span class="muted">-</span>':fmt(p)}</td><td class="n">${p?`<span class="${c>=p?'up':'down'}">${c>=p?'▲':'▼'} ${Math.abs((c-p)/Math.abs(p)*100).toFixed(1)}%</span>`:'<span class="muted">-</span>'}</td></tr>`; }).reverse().join('');
+  $('secDash').innerHTML = `<div class="dgrid">
+    <div class="dcard full"><h4>ยอดขายรายเดือน <span class="sub">(ก่อน VAT · ชี้ที่แท่งเพื่อดูตัวเลข)</span></h4>
+      <div class="legend"><span><i style="background:#2a78d6"></i>ยอดขาย</span><span><i class="ln" style="background:#8a95a5"></i>ช่วงเดียวกันปีก่อน</span>${v.partial?`<span>* ${ymShort(v.months[n-1])} ข้อมูลถึง ${isoToBE(v.effEnd)} (ยังไม่ครบเดือน)</span>`:''}</div>
+      <div id="chMonthly"></div>
+      <details class="noprint"><summary style="cursor:pointer;font-size:12px;color:var(--mute)">ดูเป็นตาราง</summary>
+        <table class="mtab"><thead><tr><th>เดือน</th><th>ยอดขาย</th><th>ปีก่อน</th><th>เทียบปีก่อน</th></tr></thead><tbody>${rowsM}</tbody></table></details>
+    </div>
+    <div class="dcard"><h4>ลูกค้ายอดสูงสุด 10 อันดับ <span class="sub">${n} เดือน</span></h4>${hbars(v.custs, v.total, 10)}</div>
+    <div class="dcard"><h4>ยอดขายตามพนักงานขาย <span class="sub">${n} เดือน</span></h4>${hbars(v.emps, v.total, 8)}</div>
+  </div>`;
+  monthlyChart(v);
+}
+let _rz; window.addEventListener('resize', ()=>{ clearTimeout(_rz); _rz = setTimeout(()=>{ if (TAB==='dash' && VIEW && VIEW.kind==='dash') monthlyChart(VIEW); }, 200); });
 
 // ---------- Excel ----------
 function exportExcel(){
@@ -504,7 +807,7 @@ function exportExcel(){
     const first=hr+2, last=hr+1+dataRows.length, totRow=last+1;
     dataRows.forEach((row,i)=>{
       const R=hr+1+i, x=R+1;
-      row.forEach((val,c)=>{ const h=headers[c]; if (h.f) put(R,c,val,ST.num,h.f(x)); else put(R,c,val, ST[h.t]||ST.txt); });
+      row.forEach((val,c)=>{ const h=headers[c]; if (h.f) put(R,c,val,ST[h.t]||ST.num,h.f(x)); else put(R,c,val, ST[h.t]||ST.txt); });
       if (shareOf>=0) put(R,headers.length,0,ST.pct,`IF($${L(shareOf)}$${totRow}=0,0,${L(shareOf)}${x}/$${L(shareOf)}$${totRow})`);
     });
     const TR=totRow-1, firstSum=Math.min(...totalCols);
@@ -520,13 +823,35 @@ function exportExcel(){
     ws['!pageSetup']={orientation:'landscape',paperSize:9,fitToWidth:1,fitToHeight:0};
     return ws;
   }
+  const wb = XLSX.utils.book_new();
+  const fnRange = (a,b)=>`${isoToBE(a).replace(/\//g,'-')}_ถึง_${isoToBE(b).replace(/\//g,'-')}`;
+  if (v.kind==='cmp'){
+    const nm = v.months.length, c0 = 3, cT = c0+nm, cA = cT+1;
+    const H = [{h:'ลำดับ',t:'ctr'},{h:v.gb==='cust'?'รหัสลูกค้า':'รหัส',t:'txt'},{h:v.gb==='cust'?'ชื่อลูกค้า':'พนักงานขาย',t:'txt'}]
+      .concat(v.months.map(m=>({h:ymLabel(m),t:'num'})))
+      .concat([{h:'รวม',t:'numB',f:x=>`SUM(${L(c0)}${x}:${L(cT-1)}${x})`},{h:'เฉลี่ย/เดือน',t:'num',f:x=>`${L(cT)}${x}/${nm}`}]);
+    const rows = v.rows.map((r,i)=>[i+1,r.key,r.name].concat(r.v).concat([r.net,r.avg]));
+    const sums = []; for (let c=c0;c<=cA;c++) sums.push(c);
+    XLSX.utils.book_append_sheet(wb, sheet(v.title, H, rows, [6,16,42].concat(v.months.map(()=>13)).concat([15,13]), sums, -1), 'เปรียบเทียบรายเดือน');
+    XLSX.writeFile(wb, `เปรียบเทียบยอดขาย_${fnRange(v.from,v.to)}.xlsx`); return;
+  }
+  if (v.kind==='dash'){
+    const H = [{h:'ลำดับ',t:'ctr'},{h:'เดือน',t:'txt'},{h:'ยอดขาย',t:'numB'},{h:'ช่วงเดียวกันปีก่อน',t:'num'},
+               {h:'ผลต่าง',t:'num',f:x=>`C${x}-D${x}`},{h:'เปลี่ยนแปลง %',t:'pct',f:x=>`IF(D${x}=0,"-",(C${x}-D${x})/ABS(D${x}))`}];
+    const rows = v.months.map((m,i)=>[i+1,ymLabelF(m),v.cur[i],v.prev[i]===null?0:v.prev[i],0,0]);
+    XLSX.utils.book_append_sheet(wb, sheet('ยอดขายรายเดือนเทียบปีก่อน', H, rows, [6,20,18,18,16,14], [2,3,4], -1), 'รายเดือน');
+    const H2 = [{h:'ลำดับ',t:'ctr'},{h:'รหัสลูกค้า',t:'txt'},{h:'ชื่อลูกค้า',t:'txt'},{h:'ยอดขาย (ก่อน VAT)',t:'numB'}];
+    XLSX.utils.book_append_sheet(wb, sheet('ยอดขายตามลูกค้า', H2, v.custs.map((r,i)=>[i+1,r.key,r.name,r.net]), [6,18,50,18], [3], 3), 'ตามลูกค้า');
+    const H3 = [{h:'ลำดับ',t:'ctr'},{h:'รหัส',t:'txt'},{h:'พนักงานขาย',t:'txt'},{h:'ยอดขาย (ก่อน VAT)',t:'numB'}];
+    XLSX.utils.book_append_sheet(wb, sheet('ยอดขายตามพนักงานขาย', H3, v.emps.map((r,i)=>[i+1,r.key,r.name,r.net]), [6,14,34,18], [3], 3), 'ตามพนักงานขาย');
+    XLSX.writeFile(wb, `Dashboard_ยอดขาย_${fnRange(v.from,v.to)}.xlsx`); return;
+  }
   const cols = v.cols;
   const H = [{h:'ลำดับ',t:'ctr'}].concat(cols.map(c=>({h:c.h, t: c.t==='code'||c.t==='name' ? 'txt' : c.t})));
   const netIdx = 1+cols.findIndex(c=>c.k==='net'), vatIdx = 1+cols.findIndex(c=>c.k==='vat'), grIdx = 1+cols.findIndex(c=>c.k==='gross');
   H[grIdx] = {h:H[grIdx].h, t:'num', f:x=>`${L(netIdx)}${x}+${L(vatIdx)}${x}`};
   const rows1 = v.rows.map((r,i)=>[i+1].concat(cols.map(c=>{ const x=r[c.k]; return (c.t==='code'||c.t==='name')? String(x??'') : (x||0); })));
   const sumCols = cols.map((c,i)=>(!c.nosum && c.t!=='code' && c.t!=='name') ? i+1 : -1).filter(i=>i>0);
-  const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, sheet(v.title, H, rows1, [6].concat(cols.map(c=>c.w)), sumCols, netIdx), 'สรุปยอดขาย');
   if (v.docs.length){
     const H2 = [{h:'ลำดับ',t:'ctr'},{h:'วันที่',t:'ctr'},{h:'เลขที่',t:'txt'},{h:'ประเภท',t:'ctr'},{h:'รหัสลูกค้า',t:'txt'},{h:'ชื่อลูกค้า',t:'txt'},{h:'พนักงานขาย',t:'txt'},{h:'เลขที่ PO ลูกค้า',t:'txt'},{h:'ยอดขาย (ก่อน VAT)',t:'numB'},{h:'VAT 7%',t:'num'},{h:'รวม VAT',t:'num'},{h:'ครบกำหนด',t:'ctr'}];
