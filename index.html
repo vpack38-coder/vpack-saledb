@@ -35,6 +35,7 @@
   .filter select,.filter input{font-family:Tahoma;font-size:12px;padding:3px 4px;border:1px solid #b9c3cf;border-radius:3px}
   .filter input.d{width:92px;text-align:center}
   .filter .lbl{color:var(--mute)}
+  .filter input.d.bad{border-color:var(--red);background:#fdecea}
   .filter .grp{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
   .filter .sep{width:1px;height:20px;background:var(--line)}
   .quick button{font-family:Tahoma;font-size:11px;border:1px solid #b9c3cf;background:var(--soft);border-radius:3px;padding:2px 6px;cursor:pointer}
@@ -199,7 +200,7 @@
         </select>
       </div>
       <div class="grp" id="gMonth"><select id="m1" onchange="render()"></select><span id="mTo" class="lbl">ถึง</span><select id="m2" onchange="render()"></select></div>
-      <div class="grp" id="gDate"><input class="d" id="d1" placeholder="วว/ดด/ปปปป" inputmode="numeric" onchange="render()"><span class="lbl">ถึง</span><input class="d" id="d2" placeholder="วว/ดด/ปปปป" inputmode="numeric" onchange="render()"></div>
+      <div class="grp" id="gDate"><input class="d" id="d1" placeholder="วว/ดด/ปปปป" inputmode="numeric" maxlength="10" autocomplete="off"><span class="lbl">ถึง</span><input class="d" id="d2" placeholder="วว/ดด/ปปปป" inputmode="numeric" maxlength="10" autocomplete="off"></div>
       <div class="grp" id="gYear"><select id="y1" onchange="render()"></select></div>
       <div class="sep"></div>
       <div class="grp"><span class="lbl">แสดงตาม</span>
@@ -626,6 +627,35 @@ async function doUpload(){
     $('btnConfirm').disabled = false; $('btnConfirm').textContent = 'ยืนยันอัปเดต';
   }finally{ $('loading').classList.add('hidden'); }
 }
+
+// ---------- ช่องวันที่: พิมพ์แค่ตัวเลข เช่น 01102569 → 01/10/2569 (input mask) ----------
+function validBE(v){
+  const iso = beToISO(v); if (!iso || !/^\d{2}\/\d{2}\/\d{4}$/.test(v)) return false;
+  const [y,m,d] = iso.split('-').map(Number), dt = new Date(y,m-1,d);
+  return dt.getFullYear()===y && dt.getMonth()===m-1 && dt.getDate()===d;
+}
+function maskDate(el){
+  const dig = el.value.replace(/\D/g,'').slice(0,8);
+  let out = dig.slice(0,2);
+  if (dig.length>2) out += '/' + dig.slice(2,4);
+  if (dig.length>4) out += '/' + dig.slice(4);
+  el.value = out;
+  el.classList.remove('bad');
+  if (dig.length===8){ if (validBE(out)) render(); else el.classList.add('bad'); }
+}
+function finishDate(el){
+  const dig = el.value.replace(/\D/g,'');
+  if (dig.length===6) el.value = `${dig.slice(0,2)}/${dig.slice(2,4)}/25${dig.slice(4)}`;   // 011069 → 01/10/2569
+  if (!el.value) return;
+  if (validBE(el.value)){ el.classList.remove('bad'); render(); } else el.classList.add('bad');
+}
+['d1','d2'].forEach(id=>{
+  const el = $(id);
+  el.addEventListener('input', ()=>maskDate(el));
+  el.addEventListener('blur', ()=>finishDate(el));
+  el.addEventListener('keydown', e=>{ if (e.key==='Enter'){ finishDate(el); if (id==='d1') $('d2').focus(); } });
+  el.addEventListener('focus', ()=>el.select());
+});
 
 // ---------- ตั้งค่าการพิมพ์ (ฟอนต์ / ขนาด / กระดาษ) ----------
 const PRINT_KEY = 'vpack_sales_print';
