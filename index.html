@@ -123,7 +123,7 @@
   .mtab td,.mtab th{padding:2px 6px}
   #tip{position:fixed;z-index:60;background:#1e2733;color:#fff;font-size:12px;padding:6px 8px;border-radius:4px;pointer-events:none;line-height:1.5;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.2)}
   #tip .sw{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px}
-  @media (max-width:720px){ .dgrid{grid-template-columns:1fr} .filter input.cust{width:100%} .tabs button{flex:1;padding:6px 4px;font-size:12px} }
+  @media screen and (max-width:720px){ .dgrid{grid-template-columns:1fr} .filter input.cust{width:100%} .tabs button{flex:1;padding:6px 4px;font-size:12px} }
   @media print{ .tabs{display:none!important} .dcard{break-inside:avoid} }
 
   /* แถบตั้งค่าการพิมพ์ */
@@ -146,7 +146,7 @@
   .paper.pp td,.paper.pp td.name{font-size:1em}
 
   /* ---------- มือถือ ---------- */
-  @media (max-width:720px){
+  @media screen and (max-width:720px){
     body{font-size:14px}
     .wrap{padding:6px}
     .topbar h1{font-size:14px}
@@ -171,6 +171,7 @@
     body{background:#fff}.wrap{max-width:none;padding:0}
     .topbar,.filter,.tools,.printbar,.noprint{display:none!important}
     .paper{box-shadow:none;margin:0;padding:0}
+    #secSum,#secCmp{overflow:visible!important}
     th,.share .bar,.kpi,tfoot td,.note{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   }
 </style>
@@ -666,9 +667,10 @@ function buildCompare(){
   docs.forEach(d=>{
     const k = gb==='cust' ? d.code : (d.emp||'-');
     let g = map.get(k);
-    if (!g){ g = {key:k, name: gb==='cust'?d.name:(d.empn||'-'), v:B.map(()=>0)}; map.set(k,g); }
+    if (!g){ g = {key:k, name: gb==='cust'?d.name:(d.empn||'-'), v:B.map(()=>0), credit:0, lastD:''}; map.set(k,g); }
     g.v[idx[keyOf(d)]] += d.amt;
     if (gb==='cust') g.name = d.name;
+    if (gb==='cust' && d.sale && d.d>=g.lastD){ g.lastD=d.d; g.credit = d.due ? Math.max(0,daysBetween(d.d,d.due)-1) : 0; }
   });
   const rows = [...map.values()].map(g=>{
     g.v = g.v.map(r2); g.net = r2(g.v.reduce((a,b)=>a+b,0)); g.avg = r2(g.net/n); g.active = g.v.filter(x=>Math.abs(x)>0.005).length;
@@ -699,15 +701,15 @@ function renderCompare(){
     <div class="kpi"><div class="l">${v.gb==='cust'?'ลูกค้าที่มียอด':'พนักงานที่มียอด'}</div><div class="v">${v.rows.length.toLocaleString()} ${v.gb==='cust'?'ราย':'คน'}</div><div class="s">มียอดทุก${v.uw} ${allM.toLocaleString()}</div></div>
     <div class="kpi"><div class="l">${v.B[v.n-1].short} เทียบ ${v.n>1?v.B[v.n-2].short:'-'}${v.partialLast?` <span title="ช่วงล่าสุดยังไม่ครบ">(ข้อมูลถึง ${isoToBE(DATA.maxD).slice(0,5)})</span>`:''}</div>${(()=>{const a=v.colTot[v.n-1],b=v.colTot[v.n-2]; if(v.n<2||!b) return '<div class="v muted">-</div><div class="s">&nbsp;</div>'; const p=(a-b)/Math.abs(b)*100; return `<div class="v ${p>=0?'up':'down'}">${p>=0?'▲':'▼'} ${Math.abs(p).toFixed(1)}%</div><div class="s">${fmt0(a)} vs ${fmt0(b)}</div>`;})()}</div>`;
   const T = $('tblCmp');
-  T.tHead.innerHTML = `<tr><th>ลำดับ</th><th class="hm">${v.gb==='cust'?'รหัสลูกค้า':'รหัส'}</th><th>${v.gb==='cust'?'ชื่อลูกค้า':'พนักงานขาย'}</th>`
+  T.tHead.innerHTML = `<tr><th>ลำดับ</th><th class="hm">${v.gb==='cust'?'รหัสลูกค้า':'รหัส'}</th><th>${v.gb==='cust'?'ชื่อลูกค้า':'พนักงานขาย'}</th>${v.gb==='cust'?'<th class="hm">เครดิต<br>(วัน)</th>':''}`
     + v.B.map((b,i)=>`<th class="mo">${v.unit==='year'?'ปี ':''}${b.short}${(v.partialLast&&i===v.n-1)?'*':''}</th>`).join('') + `<th>รวม</th><th class="hm">เฉลี่ย/${v.uw}</th><th class="hm">แนวโน้ม</th><th>${v.B[v.n-1].short} vs ${v.n>1?v.B[v.n-2].short:'-'}${v.partialLast?`<br><small>(*ข้อมูลถึง ${isoToBE(DATA.maxD).slice(0,5)})</small>`:''}</th></tr>`;
-  if (!v.rows.length){ T.tBodies[0].innerHTML = `<tr><td colspan="${v.n+7}" class="empty">ไม่มียอดขายในช่วงที่เลือก</td></tr>`; T.tFoot.innerHTML=''; return; }
+  if (!v.rows.length){ T.tBodies[0].innerHTML = `<tr><td colspan="${v.n+8}" class="empty">ไม่มียอดขายในช่วงที่เลือก</td></tr>`; T.tFoot.innerHTML=''; return; }
   const chg = c => c===null ? '<span class="muted">-</span>' : `<span class="${c>=0?'up':'down'}">${c>=0?'▲':'▼'} ${Math.abs(c*100).toFixed(1)}%</span>`;
-  T.tBodies[0].innerHTML = v.rows.map((r,i)=>`<tr><td class="c">${i+1}</td><td class="code hm">${esc(r.key)}</td><td class="name" title="${esc(r.name)}">${esc(v.gb==='cust'?shortName(r.name):r.name)}</td>`
+  T.tBodies[0].innerHTML = v.rows.map((r,i)=>`<tr><td class="c">${i+1}</td><td class="code hm">${esc(r.key)}</td><td class="name" title="${esc(r.name)}">${esc(v.gb==='cust'?shortName(r.name):r.name)}</td>${v.gb==='cust'?`<td class="c hm">${r.credit||'<span class="muted">-</span>'}</td>`:''}`
     + r.v.map(x=>`<td class="n">${fmt(x)}</td>`).join('')
     + `<td class="n tot">${fmt(r.net)}</td><td class="n hm">${fmt(r.avg)}</td><td class="hm">${sparkSVG(r.v)}</td><td class="n">${chg(r.chg)}</td></tr>`).join('');
   const lt = v.colTot[v.n-1], pt = v.colTot[v.n-2];
-  T.tFoot.innerHTML = `<tr><td colspan="2" class="c">รวม ${v.rows.length.toLocaleString()} รายการ</td><td class="hm"></td>`
+  T.tFoot.innerHTML = `<tr><td colspan="2" class="c">รวม ${v.rows.length.toLocaleString()} รายการ</td><td class="hm"></td>${v.gb==='cust'?'<td class="hm"></td>':''}`
     + v.colTot.map(x=>`<td class="n">${fmt0(x)}</td>`).join('')
     + `<td class="n">${fmt0(v.total)}</td><td class="n hm">${fmt0(r2(v.total/v.n))}</td><td class="hm">${sparkSVG(v.colTot)}</td><td class="n">${chg(v.n>1&&pt?(lt-pt)/Math.abs(pt):null)}</td></tr>`;
 }
@@ -883,13 +885,13 @@ function exportExcel(){
   const wb = XLSX.utils.book_new();
   const fnRange = (a,b)=>`${isoToBE(a).replace(/\//g,'-')}_ถึง_${isoToBE(b).replace(/\//g,'-')}`;
   if (v.kind==='cmp'){
-    const nm = v.n, c0 = 3, cT = c0+nm, cA = cT+1;
-    const H = [{h:'ลำดับ',t:'ctr'},{h:v.gb==='cust'?'รหัสลูกค้า':'รหัส',t:'txt'},{h:v.gb==='cust'?'ชื่อลูกค้า':'พนักงานขาย',t:'txt'}]
+    const cr = v.gb==='cust', nm = v.n, c0 = cr?4:3, cT = c0+nm, cA = cT+1;
+    const H = [{h:'ลำดับ',t:'ctr'},{h:cr?'รหัสลูกค้า':'รหัส',t:'txt'},{h:cr?'ชื่อลูกค้า':'พนักงานขาย',t:'txt'}].concat(cr?[{h:'เครดิต (วัน)',t:'int'}]:[])
       .concat(v.B.map((b,i)=>({h:b.full+((v.partialLast&&i===nm-1)?` (ถึง ${isoToBE(DATA.maxD).slice(0,5)})`:''),t:'num'})))
       .concat([{h:'รวม',t:'numB',f:x=>`SUM(${L(c0)}${x}:${L(cT-1)}${x})`},{h:'เฉลี่ย/'+v.uw,t:'num',f:x=>`${L(cT)}${x}/${nm}`}]);
-    const rows = v.rows.map((r,i)=>[i+1,r.key,r.name].concat(r.v).concat([r.net,r.avg]));
+    const rows = v.rows.map((r,i)=>[i+1,r.key,r.name].concat(cr?[r.credit||0]:[]).concat(r.v).concat([r.net,r.avg]));
     const sums = []; for (let c=c0;c<=cA;c++) sums.push(c);
-    XLSX.utils.book_append_sheet(wb, sheet(v.title, H, rows, [6,16,42].concat(v.B.map(()=>14)).concat([15,13]), sums, -1), v.unit==='year'?'เปรียบเทียบรายปี':'เปรียบเทียบรายเดือน');
+    XLSX.utils.book_append_sheet(wb, sheet(v.title, H, rows, [6,16,42].concat(cr?[10]:[]).concat(v.B.map(()=>14)).concat([15,13]), sums, -1), v.unit==='year'?'เปรียบเทียบรายปี':'เปรียบเทียบรายเดือน');
     XLSX.writeFile(wb, v.unit==='year' ? `เปรียบเทียบยอดขายรายปี_${v.B[0].short}-${v.B[v.n-1].short}.xlsx` : `เปรียบเทียบยอดขาย_${fnRange(v.from,v.to)}.xlsx`); return;
   }
   if (v.kind==='dash'){
@@ -1133,8 +1135,16 @@ function togglePrint(show){
   bar.classList.toggle('hidden', !on);
   $('report').classList.toggle('pp', on);     // ดูตัวอย่างบนจอ
 }
-window.addEventListener('beforeprint', ()=>$('report').classList.add('pp'));
-window.addEventListener('afterprint', ()=>{ if ($('printbar').classList.contains('hidden')) $('report').classList.remove('pp'); });
+// ตอนพิมพ์: ถ้าตารางกว้างกว่ากระดาษ ย่อทั้งหน้าให้พอดี (ไม่ให้คอลัมน์ขวาโดนตัด)
+function fitToPage(){
+  const paper = $('report'); paper.style.zoom = '';
+  const mm = $('pPage').value.includes('portrait') ? 190 : 277, pagePx = mm*96/25.4;
+  const sec = TAB==='cmp' ? $('tblCmp') : TAB==='sum' ? $('secSum').querySelector('table') : null;
+  const w = Math.max(paper.scrollWidth, sec ? sec.scrollWidth + 34 : 0);
+  if (w > pagePx) paper.style.zoom = (pagePx / w).toFixed(3);
+}
+window.addEventListener('beforeprint', ()=>{ $('report').classList.add('pp'); fitToPage(); });
+window.addEventListener('afterprint', ()=>{ $('report').style.zoom=''; if ($('printbar').classList.contains('hidden')) $('report').classList.remove('pp'); });
 loadPrintSettings();
 
 // ---------- start ----------
